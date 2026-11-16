@@ -34,7 +34,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [state, attempt]);
 
-  if (state.status === 'loading') return <div className="fullscreen-message" aria-busy="true" />;
+  if (state.status === 'loading')
+    return (
+      <div className="fullscreen-message" aria-busy="true">
+        <p>Загрузка…</p>
+      </div>
+    );
   if (state.status === 'error')
     return (
       <div className="fullscreen-message" role="alert">

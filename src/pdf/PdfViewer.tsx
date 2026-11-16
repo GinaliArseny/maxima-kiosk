@@ -24,11 +24,16 @@ export function PdfViewer({ url, title, open = openPdf }: Props) {
 
   useEffect(() => {
     let alive = true;
+    let loaded: PdfDoc | null = null;
     setDoc(null);
     setFailed(false);
     setPage(1);
     open(url).then(
-      (d) => alive && setDoc(d),
+      (d) => {
+        if (!alive) return d.destroy();
+        loaded = d;
+        setDoc(d);
+      },
       (e) => {
         console.error(e);
         if (alive) setFailed(true);
@@ -36,15 +41,21 @@ export function PdfViewer({ url, title, open = openPdf }: Props) {
     );
     return () => {
       alive = false;
+      loaded?.destroy();
     };
   }, [url, open]);
 
   useEffect(() => {
     if (!doc || !canvas.current) return;
+    let current = true;
     doc.renderPage(page, canvas.current, scale).catch((e) => {
       console.error(e);
-      setFailed(true);
+      // Ошибка рендера, который уже сменился другой страницей/масштабом, — не повод прятать документ.
+      if (current) setFailed(true);
     });
+    return () => {
+      current = false;
+    };
   }, [doc, page, scale]);
 
   const go = (delta: number) => doc && setPage((p) => Math.min(doc.numPages, Math.max(1, p + delta)));

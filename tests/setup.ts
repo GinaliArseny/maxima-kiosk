@@ -19,7 +19,7 @@ if (!('PointerEvent' in window)) {
 
 // Граница pdf.js: в jsdom нет canvas и воркеров — по умолчанию одностраничный фейк.
 vi.mock('../src/pdf/pdfjsAdapter', () => ({
-  openPdf: vi.fn(async () => ({ numPages: 1, renderPage: async () => {} })),
+  openPdf: vi.fn(async () => ({ numPages: 1, renderPage: async () => {}, destroy: () => {} })),
 }));
 
 afterEach(() => {

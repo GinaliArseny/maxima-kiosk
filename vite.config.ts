@@ -16,6 +16,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        // Киоск — одна вкладка без перезапусков: новый SW должен вставать сразу.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes('/data/') && url.pathname.endsWith('.json'),

@@ -8,7 +8,7 @@ import { renderApp } from '../helpers/renderApp';
 
 /** Фейковый документ на границе pdf.js: 3 страницы, рендер всегда успешен. */
 const fakeOpen = (numPages = 3) =>
-  vi.fn(async (): Promise<PdfDoc> => ({ numPages, renderPage: vi.fn(async () => {}) }));
+  vi.fn(async (): Promise<PdfDoc> => ({ numPages, renderPage: vi.fn(async () => {}), destroy: vi.fn() }));
 
 const renderViewer = (open = fakeOpen()) =>
   render(
@@ -83,6 +83,43 @@ describe('Просмотрщик PDF', () => {
     renderViewer(open);
     await screen.findByText('1 / 3');
     expect(open).toHaveBeenCalledWith('docs/sample.pdf');
+  });
+});
+
+describe('Быстрое листание', () => {
+  it('сбой устаревшего рендера не делает документ «недоступным»', async () => {
+    let failFirst!: (e: Error) => void;
+    const renderPage = vi
+      .fn<PdfDoc['renderPage']>()
+      .mockImplementationOnce(() => new Promise<void>((_, reject) => (failFirst = reject)))
+      .mockResolvedValue(undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderViewer(vi.fn(async () => ({ numPages: 3, renderPage, destroy: vi.fn() })));
+    await userEvent.click(await screen.findByRole('button', { name: /Далее/ }));
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
+    failFirst(new Error('Cannot use the same canvas during multiple render() operations'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByText('Документ временно недоступен')).not.toBeInTheDocument();
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
+  });
+});
+
+describe('Освобождение ресурсов pdf.js', () => {
+  it('уход с экрана освобождает документ', async () => {
+    const doc: PdfDoc = { numPages: 2, renderPage: vi.fn(async () => {}), destroy: vi.fn() };
+    const { unmount } = renderViewer(vi.fn(async () => doc));
+    await screen.findByText('1 / 2');
+    unmount();
+    expect(doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('документ, догрузившийся после ухода с экрана, тоже освобождается', async () => {
+    const doc: PdfDoc = { numPages: 2, renderPage: vi.fn(async () => {}), destroy: vi.fn() };
+    let resolve!: (d: PdfDoc) => void;
+    const { unmount } = renderViewer(vi.fn(() => new Promise<PdfDoc>((r) => (resolve = r))));
+    unmount();
+    resolve(doc);
+    await waitFor(() => expect(doc.destroy).toHaveBeenCalledTimes(1));
   });
 });
 
