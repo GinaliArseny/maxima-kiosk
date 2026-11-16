@@ -1,4 +1,5 @@
 import { useKioskData } from '../data/DataProvider';
+import { ExternalLink } from '../external/ExternalLinkProvider';
 import { HoursTable } from '../ui/HoursTable';
 import { ScreenLayout } from '../ui/ScreenLayout';
 import styles from './screens.module.css';
@@ -29,7 +30,9 @@ export function Contacts() {
             </div>
             <div>
               <dt>Сайт</dt>
-              <dd>{clinic.site.replace(/^https?:\/\//, '')}</dd>
+              <dd>
+                <ExternalLink url={clinic.site} title="Сайт клиники" />
+              </dd>
             </div>
           </dl>
         </section>
