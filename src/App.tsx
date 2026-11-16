@@ -3,6 +3,7 @@ import { DataProvider } from './data/DataProvider';
 import { ExternalLinkProvider } from './external/ExternalLinkProvider';
 import { IdleReset } from './kiosk/IdleReset';
 import { KioskShell } from './kiosk/KioskShell';
+import { DocRoute } from './pdf/DocRoute';
 import { Contacts } from './screens/Contacts';
 import { DoctorCard } from './screens/DoctorCard';
 import { Doctors } from './screens/Doctors';
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/rights" element={<Rights />} />
               <Route path="/doctors" element={<Doctors />} />
               <Route path="/doctors/:id" element={<DoctorCard />} />
+              <Route path="/doc/:id" element={<DocRoute />} />
             </Routes>
           </KioskShell>
         </ExternalLinkProvider>
