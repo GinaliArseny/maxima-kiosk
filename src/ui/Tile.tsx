@@ -9,20 +9,27 @@ interface TileProps {
   onPress?: () => void;
   icon?: ReactNode;
   accent?: boolean;
+  /** Крупный баннер на всю ширину — для игры. */
+  game?: boolean;
   hint?: string;
   children: ReactNode;
 }
 
 /** Крупная плитка-кнопка главного экрана. */
-export function Tile({ to, href, onPress, icon, accent, hint, children }: TileProps) {
+export function Tile({ to, href, onPress, icon, accent, game, hint, children }: TileProps) {
   const navigate = useNavigate();
   const press = () => (to ? navigate(to) : onPress?.());
-  const className = accent ? `${styles.tile} ${styles.tileAccent}` : styles.tile;
+  const className = [styles.tile, accent && styles.tileAccent, game && styles.tileGame].filter(Boolean).join(' ');
+  const text = (
+    <>
+      <span className={styles.tileLabel}>{children}</span>
+      {hint && <span className={styles.tileHint}>{hint}</span>}
+    </>
+  );
   const inner = (
     <>
       {icon && <span className={styles.tileIcon} aria-hidden="true">{icon}</span>}
-      <span className={styles.tileLabel}>{children}</span>
-      {hint && <span className={styles.tileHint}>{hint}</span>}
+      {game ? <span className={styles.tileGameText}>{text}</span> : text}
     </>
   );
   if (href)

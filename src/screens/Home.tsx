@@ -21,6 +21,11 @@ export function Home() {
         <p className={styles.welcomeHint}>Коснитесь раздела, чтобы открыть его</p>
       </section>
       <nav className={styles.tiles} aria-label="Разделы">
+        {clinic.gameUrl && (
+          <Tile href={clinic.gameUrl} icon="🦷" game hint="Защити зубы от кариеса — победителю подарок!">
+            Игра для детей
+          </Tile>
+        )}
         <Tile to="/documents" icon="📄" hint="Лицензия, реквизиты, договоры, законы">
           Документы и сведения
         </Tile>
@@ -38,11 +43,6 @@ export function Home() {
         <Tile to="/contacts" icon="📍" hint="Адрес, телефоны, режим работы">
           Контакты
         </Tile>
-        {clinic.gameUrl && (
-          <Tile href={clinic.gameUrl} icon="🚀" accent hint="Спаси зубик — получи подарок">
-            Игра для детей
-          </Tile>
-        )}
       </nav>
     </main>
   );
