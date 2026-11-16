@@ -20,34 +20,38 @@ export function Home() {
           {today ? `Сегодня открыто ${today}` : 'Сегодня выходной'}
         </p>
       </header>
-      <section className={styles.welcome}>
-        <h1>Добро пожаловать!</h1>
-        <p>Здесь документы клиники, врачи и цены. Нажмите на нужный раздел.</p>
-      </section>
-      <nav className={styles.tiles} aria-label="Разделы">
-        {clinic.gameUrl && (
-          <Tile href={clinic.gameUrl} icon={<IconTooth />} game hint="Защити зубик от кариеса — победителю подарок!">
-            Игра для детей
+      <div className={styles.homeBody}>
+        <div className={styles.homeLead}>
+          <section className={styles.welcome}>
+            <h1>Добро пожаловать!</h1>
+            <p>Здесь документы клиники, врачи и цены. Нажмите на нужный раздел.</p>
+          </section>
+          {clinic.gameUrl && (
+            <Tile href={clinic.gameUrl} icon={<IconTooth />} game hint="Защити зубик от кариеса — победителю подарок!">
+              Игра для детей
+            </Tile>
+          )}
+        </div>
+        <nav className={styles.tiles} aria-label="Разделы">
+          <Tile to="/documents" tone="orange" icon={<IconDocs />} hint="Лицензия, реквизиты, законы">
+            Документы и сведения
           </Tile>
-        )}
-        <Tile to="/documents" tone="orange" icon={<IconDocs />} hint="Лицензия, реквизиты, законы">
-          Документы и сведения
-        </Tile>
-        <Tile to="/doctors" tone="cyan" icon={<IconDoctor />} hint="Образование и квалификация">
-          Врачи
-        </Tile>
-        {clinic.priceDocId && (
-          <Tile to={`/doc/${clinic.priceDocId}`} tone="lime" icon={<IconPrice />} hint="Прейскурант клиники">
-            Цены
+          <Tile to="/doctors" tone="cyan" icon={<IconDoctor />} hint="Образование и квалификация">
+            Врачи
           </Tile>
-        )}
-        <Tile to="/rights" tone="purple" icon={<IconRights />} hint="Жалобы, главный врач, надзор">
-          Права пациента
-        </Tile>
-        <Tile to="/contacts" tone="graphite" icon={<IconPin />} hint="Адрес, телефон, режим работы">
-          Контакты
-        </Tile>
-      </nav>
+          {clinic.priceDocId && (
+            <Tile to={`/doc/${clinic.priceDocId}`} tone="lime" icon={<IconPrice />} hint="Прейскурант клиники">
+              Цены
+            </Tile>
+          )}
+          <Tile to="/rights" tone="purple" icon={<IconRights />} hint="Жалобы, главный врач, надзор">
+            Права пациента
+          </Tile>
+          <Tile to="/contacts" tone="graphite" icon={<IconPin />} hint="Адрес, телефон, режим работы">
+            Контакты
+          </Tile>
+        </nav>
+      </div>
     </main>
   );
 }
