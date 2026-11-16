@@ -1,6 +1,7 @@
 .home {
   position: relative;
-  flex: 1;
+  /* не сжиматься под высоту окна: при overflow:hidden flex-элемент иначе обрезает плитки вместо прокрутки */
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   padding: 0 var(--pad) var(--pad);
