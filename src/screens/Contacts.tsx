@@ -7,7 +7,7 @@ import styles from './screens.module.css';
 export function Contacts() {
   const { clinic } = useKioskData();
   return (
-    <ScreenLayout title="Контакты">
+    <ScreenLayout title="Контакты" tone="graphite">
       <div className={styles.stack}>
         {clinic.addresses.map((a) => (
           <section key={a.address} className={styles.card}>

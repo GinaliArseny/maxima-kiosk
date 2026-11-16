@@ -1,10 +1,10 @@
 .link {
   min-height: var(--touch);
   padding: 8px 20px;
-  border: 2px solid var(--c-accent);
+  border: 2px solid var(--tone);
   border-radius: 18px;
   background: var(--c-surface);
-  color: var(--c-accent-dark);
+  color: var(--tone);
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -12,8 +12,8 @@
   text-align: left;
   overflow-wrap: anywhere;
 }
-.link:active { background: var(--c-accent-soft); }
-.qrBadge { font-size: 16px; font-weight: 800; background: var(--c-accent); color: #fff; border-radius: 8px; padding: 4px 8px; flex-shrink: 0; }
+.link:active { background: var(--tone-soft); }
+.qrBadge { font-size: 16px; font-weight: 800; background: var(--tone); color: #fff; border-radius: 8px; padding: 4px 8px; flex-shrink: 0; }
 .backdrop {
   position: fixed;
   inset: 0;

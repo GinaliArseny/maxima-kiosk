@@ -9,7 +9,7 @@ describe('Главная', () => {
   it('показывает режим работы на сегодня', async () => {
     at('2026-11-20T12:00:00+03:00'); // пятница
     renderApp();
-    expect(await screen.findByText('Сегодня: 8:30–21:00')).toBeInTheDocument();
+    expect(await screen.findByText('Сегодня открыто 8:30–21:00')).toBeInTheDocument();
   });
 
   it('день недели считается по Москве, а не по UTC', async () => {
@@ -51,7 +51,7 @@ describe('Главная', () => {
 
   it('плитки ведут на разделы', async () => {
     renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: /Врачи и расписание/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Врачи/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/doctors'));
   });
 });

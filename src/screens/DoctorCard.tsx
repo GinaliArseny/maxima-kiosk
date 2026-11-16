@@ -28,7 +28,7 @@ export function DoctorCard() {
   const workDays = WEEKDAYS.filter((d) => doctor.schedule[d]);
 
   return (
-    <ScreenLayout title={doctor.fullName}>
+    <ScreenLayout title={doctor.fullName} tone="cyan">
       <div className={styles.stack}>
         <section className={`${styles.card} ${styles.doctorHead}`}>
           <Avatar fullName={doctor.fullName} photo={doctor.photo} size={180} />

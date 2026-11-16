@@ -24,7 +24,7 @@ export function Doctors() {
   const { doctors } = useKioskData();
   const navigate = useNavigate();
   return (
-    <ScreenLayout title="Врачи и расписание">
+    <ScreenLayout title="Врачи" tone="cyan">
       <div className={styles.doctorGrid}>
         {doctors.map((d) => (
           <button key={d.id} type="button" className={styles.doctorTile} onClick={() => navigate(`/doctors/${d.id}`)}>

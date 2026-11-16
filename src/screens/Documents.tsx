@@ -9,7 +9,7 @@ export function Documents() {
   const { clinic, sections } = useKioskData();
   const l = clinic.license;
   return (
-    <ScreenLayout title="Документы и сведения">
+    <ScreenLayout title="Документы и сведения" tone="orange">
       <div className={styles.stack}>
         <section className={styles.card} aria-labelledby="sec-requisites">
           <h2 id="sec-requisites">Реквизиты</h2>

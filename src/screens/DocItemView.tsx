@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import type { DocItem } from '../data/schema';
 import { ExternalLink } from '../external/ExternalLinkProvider';
+import { IconDocSmall } from '../ui/icons';
 import styles from './screens.module.css';
 
 /** Элемент секции документов: pdf → просмотрщик, link → QR, text/notice → текст на месте. */
@@ -10,7 +11,7 @@ export function DocItemView({ item }: { item: DocItem }) {
     case 'pdf':
       return (
         <button type="button" className={styles.docRow} onClick={() => navigate(`/doc/${item.id}`)}>
-          <span className={styles.docIcon} aria-hidden="true">📄</span>
+          <span className={styles.docIcon} aria-hidden="true"><IconDocSmall /></span>
           <span className={styles.docTitle}>{item.title}</span>
           <span className={styles.docAction} aria-hidden="true">Открыть ›</span>
         </button>

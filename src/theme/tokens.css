@@ -1,24 +1,44 @@
 :root {
-  --c-accent: #788bff;
-  --c-accent-dark: #5465ff;
-  --c-accent-soft: rgba(120, 139, 255, 0.14);
-  --c-text: #222222;
-  --c-text-muted: #535353;
-  --c-bg: #f5f5f5;
+  /* Цвета логотипа «Максима»: яркие — для декора (точки), глубокие — под белый текст (контраст ≥ 3:1 для крупного жирного). */
+  --brand-orange: #f18a1e;
+  --brand-lime: #8dbf2e;
+  --brand-cyan: #1ca3c6;
+  --brand-purple: #8e2a88;
+  --tone-orange: #e2700f;
+  --tone-lime: #5b981d;
+  --tone-cyan: #0b8ab0;
+  --tone-purple: #8e2a88;
+  --tone-graphite: #4a4a4a;
+
+  --c-accent: var(--tone-cyan);
+  --c-accent-dark: #08708f;
+  --c-accent-soft: rgba(11, 138, 176, 0.12);
+  --c-text: #2b2b2b;
+  --c-text-muted: #5f6368;
+  --c-bg: #f4f6f8;
   --c-surface: #ffffff;
   --c-warning: #b54708;
   --c-warning-bg: #fff4e5;
-  --dot-1: #f28c8c;
-  --dot-2: #f5c26b;
-  --dot-3: #8fd19e;
+  --space-1: #0d1450;
+  --space-2: #1d2a8a;
+
   --font: 'Mulish', system-ui, sans-serif;
+  --font-display: 'Comfortaa', 'Mulish', system-ui, sans-serif;
   --fs-base: 26px;
   --fs-lg: 34px;
   --fs-xl: 52px;
   --fs-sm: 22px;
   --touch: 72px;
-  --radius: 28px;
+  --radius: 32px;
   --gap: 24px;
   --pad: 40px;
-  --shadow: 0 6px 24px rgba(34, 34, 34, 0.08);
+  --shadow: 0 6px 24px rgba(43, 43, 43, 0.08);
+
+  --tone: var(--tone-graphite);
+  --tone-soft: #eeeeee;
 }
+[data-tone='orange'] { --tone: var(--tone-orange); --tone-soft: #fdeedf; }
+[data-tone='lime'] { --tone: var(--tone-lime); --tone-soft: #eef6e1; }
+[data-tone='cyan'] { --tone: var(--tone-cyan); --tone-soft: #e0f2f8; }
+[data-tone='purple'] { --tone: var(--tone-purple); --tone-soft: #f4e6f3; }
+[data-tone='graphite'] { --tone: var(--tone-graphite); --tone-soft: #eeeeee; }

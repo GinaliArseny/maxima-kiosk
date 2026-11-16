@@ -11,6 +11,7 @@
     "check-content": "tsx scripts/check-content.ts"
   },
   "dependencies": {
+    "@fontsource/comfortaa": "^5.1.0",
     "@fontsource/mulish": "^5.1.0",
     "pdfjs-dist": "^4.10.38",
     "qrcode": "^1.5.4",

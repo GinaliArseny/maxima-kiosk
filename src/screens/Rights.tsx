@@ -8,7 +8,7 @@ import styles from './screens.module.css';
 export function Rights() {
   const { clinic, sections, authorities } = useKioskData();
   return (
-    <ScreenLayout title="Права пациента и обращения">
+    <ScreenLayout title="Права пациента и обращения" tone="purple">
       <div className={styles.stack}>
         <SectionList sections={sections.filter((s) => s.screen === 'rights')} />
         <section className={styles.card} aria-labelledby="sec-contacts-appeal">

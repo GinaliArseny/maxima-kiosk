@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { ScreenLayout } from '../ui/ScreenLayout';
+import type { Tone } from '../ui/tone';
 import { openPdf, type PdfDoc } from './pdfjsAdapter';
 import styles from './pdf.module.css';
 
@@ -11,10 +12,11 @@ const SWIPE_PX = 80;
 interface Props {
   url: string;
   title: string;
+  tone?: Tone;
   open?: (url: string) => Promise<PdfDoc>;
 }
 
-export function PdfViewer({ url, title, open = openPdf }: Props) {
+export function PdfViewer({ url, title, tone, open = openPdf }: Props) {
   const [doc, setDoc] = useState<PdfDoc | null>(null);
   const [failed, setFailed] = useState(false);
   const [page, setPage] = useState(1);
@@ -73,7 +75,7 @@ export function PdfViewer({ url, title, open = openPdf }: Props) {
   };
 
   return (
-    <ScreenLayout title={title}>
+    <ScreenLayout title={title} tone={tone}>
       {failed ? (
         <div className="fullscreen-message" role="alert">
           <h1>Документ временно недоступен</h1>
