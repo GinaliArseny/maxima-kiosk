@@ -1,0 +1,27 @@
+.shell { min-height: 100%; display: flex; flex-direction: column; }
+.content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.banner {
+  background: var(--c-warning-bg);
+  color: var(--c-warning);
+  border-bottom: 4px solid var(--c-warning);
+  padding: 20px var(--pad);
+  font-size: var(--fs-lg);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.demo {
+  position: fixed;
+  right: -70px;
+  bottom: 60px;
+  transform: rotate(-35deg);
+  background: var(--c-warning);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.1em;
+  padding: 10px 100px;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.9;
+}
