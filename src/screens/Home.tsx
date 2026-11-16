@@ -17,7 +17,7 @@ export function Home() {
       </header>
       <section className={styles.welcome}>
         <h1>Добро пожаловать</h1>
-        <p>в {clinic.shortName}</p>
+        <p>{clinic.shortName}</p>
         <p className={styles.welcomeHint}>Коснитесь раздела, чтобы открыть его</p>
       </section>
       <nav className={styles.tiles} aria-label="Разделы">
