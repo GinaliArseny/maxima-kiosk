@@ -31,6 +31,8 @@
 .body { flex: 1; overflow-y: auto; padding: var(--pad); -webkit-overflow-scrolling: touch; }
 
 .tile {
+  text-decoration: none;
+  color: inherit;
   min-height: 220px;
   border: 0;
   border-radius: var(--radius);
@@ -51,3 +53,13 @@
 .tileIcon { font-size: 64px; line-height: 1; }
 .tileLabel { font-size: var(--fs-lg); font-weight: 800; overflow-wrap: anywhere; }
 .tileHint { font-size: var(--fs-sm); opacity: 0.75; }
+
+.logo { display: inline-flex; align-items: center; gap: 16px; }
+.logoDots { display: grid; grid-template-columns: repeat(2, 18px); gap: 6px; }
+.logoDots i { width: 18px; height: 18px; border-radius: 50%; display: block; }
+.logoText { font-weight: 800; font-size: 40px; letter-spacing: 0.08em; color: var(--c-accent-dark); }
+
+.hoursTable { border-collapse: collapse; font-size: var(--fs-base); }
+.hoursTable th { text-align: left; font-weight: 700; padding: 6px 32px 6px 0; }
+.hoursTable td { padding: 6px 0; }
+.hoursOff { color: var(--c-text-muted); }

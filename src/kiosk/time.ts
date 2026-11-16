@@ -16,3 +16,15 @@ export function useNow(intervalMs = 60_000): Date {
   }, [intervalMs]);
   return now;
 }
+
+const WEEKDAY_BY_SHORT: Record<string, import('../data/schema').Weekday> = {
+  Mon: 'mon', Tue: 'tue', Wed: 'wed', Thu: 'thu', Fri: 'fri', Sat: 'sat', Sun: 'sun',
+};
+
+/** День недели в МСК. */
+export function moscowWeekday(now: Date = new Date()) {
+  const short = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, weekday: 'short' }).format(now);
+  return WEEKDAY_BY_SHORT[short];
+}
+
+export const WEEKDAY_LABELS = { mon: 'Пн', tue: 'Вт', wed: 'Ср', thu: 'Чт', fri: 'Пт', sat: 'Сб', sun: 'Вс' } as const;

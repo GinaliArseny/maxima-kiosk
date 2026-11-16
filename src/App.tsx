@@ -1,11 +1,9 @@
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { DataProvider } from './data/DataProvider';
 import { KioskShell } from './kiosk/KioskShell';
+import { Contacts } from './screens/Contacts';
+import { Home } from './screens/Home';
 import { ScreenLayout } from './ui/ScreenLayout';
-
-function Home() {
-  return <h1>Добро пожаловать</h1>;
-}
 
 export default function App() {
   return (
@@ -14,6 +12,7 @@ export default function App() {
         <KioskShell>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/contacts" element={<Contacts />} />
             <Route path="/documents" element={<ScreenLayout title="Документы и сведения">{null}</ScreenLayout>} />
           </Routes>
         </KioskShell>
