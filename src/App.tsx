@@ -4,8 +4,9 @@ import { ExternalLinkProvider } from './external/ExternalLinkProvider';
 import { IdleReset } from './kiosk/IdleReset';
 import { KioskShell } from './kiosk/KioskShell';
 import { Contacts } from './screens/Contacts';
+import { Documents } from './screens/Documents';
 import { Home } from './screens/Home';
-import { ScreenLayout } from './ui/ScreenLayout';
+import { Rights } from './screens/Rights';
 
 export default function App() {
   return (
@@ -17,7 +18,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/contacts" element={<Contacts />} />
-              <Route path="/documents" element={<ScreenLayout title="Документы и сведения">{null}</ScreenLayout>} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/rights" element={<Rights />} />
             </Routes>
           </KioskShell>
         </ExternalLinkProvider>

@@ -22,3 +22,28 @@
 .facts dt { color: var(--c-text-muted); }
 .facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .facts div { grid-template-columns: 1fr; gap: 4px; } }
+
+.docList { display: flex; flex-direction: column; gap: 12px; }
+.docRow {
+  min-height: 96px;
+  width: 100%;
+  border: 0;
+  border-radius: 20px;
+  background: var(--c-bg);
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 20px;
+  text-align: left;
+}
+.docRow:active { background: var(--c-accent-soft); }
+.docIcon { font-size: 40px; }
+.docTitle { font-weight: 700; overflow-wrap: anywhere; }
+.docAction { color: var(--c-accent-dark); font-weight: 800; white-space: nowrap; }
+.docText { padding: 16px 24px; border-radius: 20px; background: var(--c-bg); display: flex; flex-direction: column; gap: 8px; }
+.docText h3 { font-size: var(--fs-base); font-weight: 800; }
+.notice { background: var(--c-accent-soft); }
+.authority { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 2px solid var(--c-bg); }
+.authority:first-of-type { border-top: 0; padding-top: 0; }
+.authority h3 { font-size: var(--fs-base); font-weight: 800; }
