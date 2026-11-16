@@ -44,4 +44,15 @@ describe('Врачи и расписание', () => {
     expect(await screen.findByText('Демо Анна Сергеевна')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/doctors');
   });
+
+  it('документ врача с дословными сведениями показывается как есть', async () => {
+    const details = 'Удостоверение о повышении квалификации №670400018477 рег.номер 2301 выдано 14.04.2020 г. «Стоматология общей практики»';
+    renderApp({
+      route: '/doctors/d1',
+      doctors: [{ id: 'd1', fullName: 'Тестов Тест', specialty: 'Ортодонтия', credentials: [{ kind: 'Повышение квалификации', details }], schedule: {} }],
+    });
+    const table = await screen.findByRole('table', { name: 'Образование и квалификация' });
+    expect(within(table).getByText(details)).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'График приёма' }), 'без графика — без таблицы').not.toBeInTheDocument();
+  });
 });

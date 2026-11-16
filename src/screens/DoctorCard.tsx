@@ -6,10 +6,19 @@ import { ScreenLayout } from '../ui/ScreenLayout';
 import { Avatar } from './Doctors';
 import styles from './screens.module.css';
 
-const dash = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' ') || '—';
-
-function credentialNumber(c: Credential) {
-  return dash(c.series && `серия ${c.series}`, c.number && `№ ${c.number}`, c.uniqueNumber && `уникальный № ${c.uniqueNumber}`);
+/** Разобранные поля документа одной строкой; пустые части пропускаются. */
+function credentialSummary(c: Credential) {
+  return (
+    [
+      [c.series && `серия ${c.series}`, c.number && `№ ${c.number}`, c.uniqueNumber && `уникальный № ${c.uniqueNumber}`].filter(Boolean).join(' '),
+      c.issuedAt && `от ${c.issuedAt}`,
+      c.institution,
+      c.specialization && `«${c.specialization}»`,
+      c.validUntil && `действует до ${c.validUntil}`,
+    ]
+      .filter(Boolean)
+      .join(', ') || '—'
+  );
 }
 
 export function DoctorCard() {
@@ -53,22 +62,14 @@ export function DoctorCard() {
                 <thead>
                   <tr>
                     <th scope="col">Документ</th>
-                    <th scope="col">Номер</th>
-                    <th scope="col">Дата</th>
-                    <th scope="col">Учреждение</th>
-                    <th scope="col">Специальность</th>
-                    <th scope="col">Действует до</th>
+                    <th scope="col">Сведения</th>
                   </tr>
                 </thead>
                 <tbody>
                   {doctor.credentials.map((c, i) => (
                     <tr key={i}>
-                      <th scope="row">{c.kind}</th>
-                      <td>{credentialNumber(c)}</td>
-                      <td>{dash(c.issuedAt)}</td>
-                      <td>{dash(c.institution)}</td>
-                      <td>{dash(c.specialization)}</td>
-                      <td>{dash(c.validUntil)}</td>
+                      <th scope="row" className={styles.credKind}>{c.kind}</th>
+                      <td>{c.details ?? credentialSummary(c)}</td>
                     </tr>
                   ))}
                 </tbody>

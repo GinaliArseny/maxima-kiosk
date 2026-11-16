@@ -32,8 +32,8 @@ export function collectCoveredRefs(data: KioskData, existingFiles?: Set<string>)
   add(15, data.doctors.length > 0 && data.doctors.every((d) => d.credentials.length > 0));
   add(16, data.doctors.length > 0 && data.doctors.every((d) => Object.values(d.schedule).some(Boolean)));
   add(22, c.postalAddress);
-  add(23, c.chiefDoctor && c.recordsRoomHours);
-  add(24, data.authorities.length >= 3);
+  add(23, c.chiefDoctor.phone && c.chiefDoctor.receptionHours && c.recordsRoomHours);
+  add(24, data.authorities.length >= 3 && data.authorities.every((a) => a.address && a.phone));
   return refs;
 }
 

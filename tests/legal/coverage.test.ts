@@ -1,5 +1,3 @@
-import { readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadKioskData } from '../../src/data/load';
 import type { KioskData } from '../../src/data/schema';
@@ -8,7 +6,7 @@ import { REQUIREMENTS } from '../../src/legal/requirements';
 import { makeFakeFetch } from '../helpers/seed';
 
 const seed = () => loadKioskData(makeFakeFetch());
-const allFiles = new Set(readdirSync(resolve(__dirname, '../../public/docs')));
+const allFiles = new Set(['sample.pdf']);
 const status = (data: KioskData, n: number, files = allFiles) =>
   computeCoverage(data, files).find((r) => r.n === n)?.status;
 
@@ -55,5 +53,35 @@ describe('Покрытие юридических пунктов стенда', 
     const data = await seed();
     data.sections = data.sections.map((s) => ({ ...s, items: s.items.filter((i) => i.id !== 'license') }));
     expect(status(data, 10)).toBe('missing');
+  });
+
+  it('орган без адреса раскрывает п.24', async () => {
+    const data = await seed();
+    data.authorities = data.authorities.map((a, i) => (i === 0 ? { ...a, address: undefined } : a));
+    expect(status(data, 24)).toBe('missing');
+  });
+
+  it('без почтового адреса раскрыт п.22', async () => {
+    const data = await seed();
+    data.clinic = { ...data.clinic, postalAddress: undefined };
+    expect(status(data, 22)).toBe('missing');
+  });
+
+  it('главврач без телефона раскрывает п.23', async () => {
+    const data = await seed();
+    data.clinic = { ...data.clinic, chiefDoctor: { fullName: 'Иванов И.И.' } };
+    expect(status(data, 23)).toBe('missing');
+  });
+
+  it('лицензия без органа, выдавшего её, не закрывает п.10', async () => {
+    const data = await seed();
+    data.clinic = { ...data.clinic, license: { number: 'Л041', date: '06.10.2014' } };
+    expect(status(data, 10)).toBe('missing');
+  });
+
+  it('врачи без графика раскрывают п.16', async () => {
+    const data = await seed();
+    data.doctors = data.doctors.map((d) => ({ ...d, schedule: {} }));
+    expect(status(data, 16)).toBe('missing');
   });
 });

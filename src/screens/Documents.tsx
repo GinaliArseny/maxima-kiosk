@@ -21,7 +21,7 @@ export function Documents() {
               ['ОГРН', clinic.ogrn],
               ['ИНН', clinic.inn],
               ['КПП', clinic.kpp],
-              ['Лицензия', `№ ${l.number} от ${l.date}, ${l.validity}`],
+              ['Лицензия', [`№ ${l.number} от ${l.date}`, l.validity].filter(Boolean).join(', ')],
               ['Выдана', l.issuer],
               ['Электронная почта', clinic.email],
               ['Сайт', <ExternalLink url={clinic.site} title="Сайт клиники" />],

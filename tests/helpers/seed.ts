@@ -6,7 +6,7 @@ export type DataFile = (typeof DATA_FILES)[number];
 
 /** Сырые сид-данные из public/data — тот же JSON, что получит киоск. */
 export function readSeed(): Record<DataFile, unknown> {
-  const dir = resolve(__dirname, '../../public/data');
+  const dir = resolve(__dirname, '../fixtures/data');
   return Object.fromEntries(
     DATA_FILES.map((f) => [f, JSON.parse(readFileSync(resolve(dir, f), 'utf-8'))]),
   ) as Record<DataFile, unknown>;

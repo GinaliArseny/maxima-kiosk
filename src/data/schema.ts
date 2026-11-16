@@ -21,14 +21,14 @@ export const clinicSchema = z.object({
   email: nonEmpty,
   site: z.string().url(),
   phones: z.array(z.object({ label: nonEmpty, number: nonEmpty })),
-  postalAddress: nonEmpty,
-  chiefDoctor: z.object({ fullName: nonEmpty, phone: nonEmpty, receptionHours: nonEmpty }),
-  recordsRoomHours: nonEmpty,
+  postalAddress: nonEmpty.optional(),
+  chiefDoctor: z.object({ fullName: nonEmpty, phone: nonEmpty.optional(), receptionHours: nonEmpty.optional() }),
+  recordsRoomHours: nonEmpty.optional(),
   license: z.object({
     number: nonEmpty,
     date: nonEmpty,
-    issuer: nonEmpty,
-    validity: nonEmpty,
+    issuer: nonEmpty.optional(),
+    validity: nonEmpty.optional(),
     docId: nonEmpty.optional(),
   }),
   suspension: z
@@ -52,6 +52,8 @@ export const credentialSchema = z.object({
   specialization: nonEmpty.optional(),
   validUntil: nonEmpty.optional(),
   uniqueNumber: nonEmpty.optional(),
+  /** Сведения дословно из источника (сайт клиники) — вместо разобранных полей. */
+  details: nonEmpty.optional(),
 });
 
 export const doctorSchema = z.object({
@@ -84,7 +86,7 @@ export const docSectionSchema = z.object({
 
 export const authoritySchema = z.object({
   name: nonEmpty,
-  address: nonEmpty,
+  address: nonEmpty.optional(),
   phone: nonEmpty,
   site: z.string().url().optional(),
 });

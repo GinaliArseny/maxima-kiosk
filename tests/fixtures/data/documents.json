@@ -1,0 +1,44 @@
+[
+  {
+    "id": "org", "screen": "documents", "title": "Об организации",
+    "items": [
+      { "kind": "pdf", "id": "requisites", "title": "Реквизиты организации", "file": "sample.pdf", "legalRefs": [1, 3, 4, 5, 6, 7] },
+      { "kind": "pdf", "id": "egrul", "title": "Выписка из ЕГРЮЛ", "file": "sample.pdf", "legalRefs": [9] },
+      { "kind": "pdf", "id": "license", "title": "Лицензия на медицинскую деятельность", "file": "sample.pdf", "legalRefs": [10] },
+      { "kind": "pdf", "id": "charter", "title": "Устав", "file": "sample.pdf", "legalRefs": [21] }
+    ]
+  },
+  {
+    "id": "services", "screen": "documents", "title": "Услуги и цены",
+    "items": [
+      { "kind": "pdf", "id": "prices", "title": "Перечень платных медицинских услуг (прайс)", "file": "sample.pdf", "legalRefs": [11] },
+      { "kind": "pdf", "id": "contracts", "title": "Образцы договоров", "file": "sample.pdf", "legalRefs": [17] },
+      { "kind": "text", "id": "paid-waiting", "title": "Сроки ожидания платных медицинских услуг", "body": "Сроки ожидания предоставления платных медицинских услуг указаны в договоре.", "legalRefs": [14] },
+      { "kind": "link", "id": "terr-program", "title": "Территориальная программа госгарантий и сроки ожидания бесплатной помощи", "url": "https://zdrav.admin-smolensk.ru/", "legalRefs": [12] }
+    ]
+  },
+  {
+    "id": "standards", "screen": "documents", "title": "Стандарты и клинические рекомендации",
+    "items": [
+      { "kind": "link", "id": "pravo", "title": "Официальный интернет-портал правовой информации", "url": "http://pravo.gov.ru/", "legalRefs": [8, 13] },
+      { "kind": "link", "id": "minzdrav-cr", "title": "Рубрикатор клинических рекомендаций Минздрава России", "url": "https://cr.minzdrav.gov.ru/", "legalRefs": [8, 13] },
+      { "kind": "link", "id": "star", "title": "Клинические рекомендации Стоматологической ассоциации России (СтАР)", "url": "https://e-stomatology.ru/", "legalRefs": [8, 13] }
+    ]
+  },
+  {
+    "id": "laws", "screen": "documents", "title": "Нормативные акты",
+    "items": [
+      { "kind": "pdf", "id": "pp659", "title": "Постановление Правительства РФ № 659 от 30.05.2026 «Об утверждении Правил предоставления медицинскими организациями платных медицинских услуг»", "file": "sample.pdf", "legalRefs": [18] },
+      { "kind": "pdf", "id": "zozpp", "title": "Закон «О защите прав потребителей»", "file": "sample.pdf", "legalRefs": [20] },
+      { "kind": "pdf", "id": "fz323", "title": "Федеральный закон № 323-ФЗ «Об основах охраны здоровья граждан в РФ»", "file": "sample.pdf", "legalRefs": [20] }
+    ]
+  },
+  {
+    "id": "rights", "screen": "rights", "title": "Обращения и правила",
+    "items": [
+      { "kind": "pdf", "id": "rules", "title": "Правила поведения для посетителей", "file": "sample.pdf", "legalRefs": [25] },
+      { "kind": "notice", "id": "complaints-book", "title": "Книга жалоб и предложений", "body": "Книга жалоб и предложений находится у администратора — попросите её на стойке регистрации.", "legalRefs": [19] },
+      { "kind": "text", "id": "how-to-complain", "title": "Как подать обращение или жалобу", "body": "Обращение можно передать администратору лично, направить письмом на почтовый адрес клиники или на электронную почту. Также вы вправе обратиться в органы государственной власти, указанные ниже.", "legalRefs": [28] }
+    ]
+  }
+]

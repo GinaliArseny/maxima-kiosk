@@ -65,3 +65,29 @@ describe('Права пациента и обращения', () => {
     expect(screen.queryByRole('heading', { name: 'Об организации' })).not.toBeInTheDocument();
   });
 });
+
+describe('Неполные сведения', () => {
+  it('без почтового адреса и контактов главврача строки не выводятся', async () => {
+    renderApp({ route: '/rights', clinic: { postalAddress: undefined, recordsRoomHours: undefined, chiefDoctor: { fullName: 'Гинали Николай Васильевич' } } });
+    const chief = await screen.findByRole('region', { name: 'Главный врач' });
+    expect(within(chief).getByText('Гинали Николай Васильевич')).toBeInTheDocument();
+    expect(within(chief).queryByText('Телефон')).not.toBeInTheDocument();
+    expect(within(chief).queryByText('Ознакомление с медицинской документацией')).not.toBeInTheDocument();
+    expect(screen.queryByText('Почтовый адрес')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/undefined/);
+  });
+
+  it('лицензия без срока и органа показывает только номер и дату', async () => {
+    renderApp({ route: '/documents', clinic: { license: { number: 'Л041-01128-67/00295102', date: '06.10.2014' } } });
+    const req = await screen.findByRole('region', { name: 'Реквизиты' });
+    expect(within(req).getByText('№ Л041-01128-67/00295102 от 06.10.2014')).toBeInTheDocument();
+    expect(within(req).queryByText('Выдана')).not.toBeInTheDocument();
+    expect(req.textContent).not.toMatch(/undefined/);
+  });
+
+  it('орган без адреса показывается без строки адреса', async () => {
+    renderApp({ route: '/rights', authorities: [{ name: 'Управление Роспотребнадзора', phone: '8 (4812) 38-25-10' }] });
+    expect(await screen.findByText('Управление Роспотребнадзора')).toBeInTheDocument();
+    expect(screen.queryByText('Адрес')).not.toBeInTheDocument();
+  });
+});
