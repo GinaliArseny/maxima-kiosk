@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExternalLink } from '../external/ExternalLinkProvider';
+import { useContentVersion } from './useContentVersion';
 import { useIdleReset } from './useIdleReset';
 
 export const IDLE_MS = 90_000;
@@ -10,13 +11,15 @@ export const RELOAD_AFTER_MS = 30 * 60_000;
 
 const defaultReload = () => window.location.reload();
 
-/** Через 90 с без касаний — закрыть модалки и вернуться на главную; если страница старше 30 мин — перезагрузить. */
+/** Через 90 с без касаний — закрыть модалки и вернуться на главную; если админка сохранила
+ *  изменения (сменился data/version.json) или страница старше 30 мин — перезагрузить. */
 export function IdleReset({ reload = defaultReload }: { reload?: () => void }) {
   const navigate = useNavigate();
   const { close } = useExternalLink();
   const loadedAt = useRef(Date.now());
+  const isStale = useContentVersion();
   useIdleReset(IDLE_MS, () => {
-    if (Date.now() - loadedAt.current >= RELOAD_AFTER_MS) {
+    if (isStale() || Date.now() - loadedAt.current >= RELOAD_AFTER_MS) {
       loadedAt.current = Date.now();
       reload();
       return;
