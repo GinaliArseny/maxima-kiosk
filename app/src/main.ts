@@ -1,12 +1,17 @@
-import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, ipcMain, powerMonitor, type IpcMainInvokeEvent } from 'electron';
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { loadConfig, localConfigSchema, saveConfig, type LocalConfig } from './config';
 import { createCornerGesture } from './cornerGesture';
+import { createIdleWatcher } from './idleWatcher';
+import { JellyfinClient, type VideoItem } from './jellyfin';
 import { createMainWindow, openKiosk } from './mainWindow';
-import { configPath, serviceExitFlag } from './paths';
+import { isKioskHome } from './navigation';
+import { configPath, screensaverCachePath, serviceExitFlag } from './paths';
 import { hashPin, PinGuard, verifyPin } from './pin';
+import { fetchScreensaverSettings, type Screensaver } from './remoteSettings';
+import { createScreensaverWindow } from './screensaverWindow';
 import { createServiceWindow } from './serviceWindow';
 import { devSnapshot } from './devSnapshot';
 
@@ -28,12 +33,14 @@ void app.whenReady().then(() => {
   let cfg: LocalConfig = loadConfig(configPath());
   const guard = new PinGuard();
   let service: BrowserWindow | null = null;
+  let saver: BrowserWindow | null = null;
   let authed = false;
+  const alive = (w: BrowserWindow | null): w is BrowserWindow => Boolean(w && !w.isDestroyed());
 
   const main = createMainWindow({
     kioskUrl: cfg.kioskUrl,
     canClose: () => allowQuit,
-    overlayOpen: () => Boolean(service && !service.isDestroyed()),
+    overlayOpen: () => alive(service) || alive(saver),
   });
   void openKiosk(main, cfg.kioskUrl);
 
@@ -45,6 +52,7 @@ void app.whenReady().then(() => {
   };
   const openService = () => {
     if (service && !service.isDestroyed()) return;
+    stopSaver();
     service = createServiceWindow(main);
     service.on('closed', () => {
       service = null;
@@ -128,6 +136,58 @@ void app.whenReady().then(() => {
     if (service && e.sender === service.webContents) closeService();
   });
 
+  // ── Заставка ─────────────────────────────────────────────────────────────
+  let settings: Screensaver | null = null;
+  let saverItems: { items: (VideoItem & { url: string })[]; muted: boolean } | null = null;
+  let starting = false;
+  const settingsUrl = new URL('data/screensaver.json', cfg.kioskUrl).href;
+  const refreshSettings = async () => (settings = await fetchScreensaverSettings(fetch, settingsUrl, screensaverCachePath()));
+  void refreshSettings();
+  const thresholdSec = () => Number(process.env.KIOSK_DEV_IDLE_SEC) || (settings?.idleMinutes ?? 3) * 60;
+
+  function stopSaver() {
+    if (alive(saver)) saver.close();
+    saver = null;
+    if (!main.isDestroyed()) main.focus();
+  }
+  async function startSaver() {
+    if (alive(saver) || starting || alive(service)) return;
+    starting = true;
+    try {
+      const s = await refreshSettings();
+      if (!s?.enabled || !s.sources.length || !cfg.jellyfin) return;
+      const jf = new JellyfinClient({ ...cfg.jellyfin, fetch });
+      await jf.resolveBase();
+      await jf.login();
+      const items = await jf.expand(s.sources.map((x) => x.itemId));
+      // Пока ходили в Jellyfin, к киоску могли подойти.
+      if (!items.length || powerMonitor.getSystemIdleTime() < thresholdSec()) return;
+      saverItems = { items: items.map((i) => ({ ...i, url: jf.streamUrl(i.id) })), muted: s.muted };
+      // Под заставкой — главная стенда, а не брошенная игра или раздел.
+      if (!isKioskHome(main.webContents.getURL(), cfg.kioskUrl)) void main.loadURL(cfg.kioskUrl);
+      saver = createScreensaverWindow();
+      saver.on('closed', () => (saver = null));
+    } catch (err) {
+      console.warn('заставка не включилась:', (err as Error).message);
+    } finally {
+      starting = false;
+    }
+  }
+  ipcMain.handle('screensaver:items', (e) => {
+    if (!saver || e.sender !== saver.webContents) throw new Error('нет доступа');
+    return saverItems;
+  });
+  ipcMain.on('screensaver:dismiss', (e) => {
+    if (saver && e.sender === saver.webContents) stopSaver();
+  });
+  createIdleWatcher({
+    getIdleSeconds: () => powerMonitor.getSystemIdleTime(),
+    thresholdSec,
+    pollMs: 5000,
+    onIdle: () => void startSaver(),
+    onActive: stopSaver,
+  });
+
   if (process.env.KIOSK_DEV_SERVICE === '1') openService();
-  devSnapshot(() => service ?? main);
+  devSnapshot(() => (alive(saver) ? saver : alive(service) ? service : main));
 });
