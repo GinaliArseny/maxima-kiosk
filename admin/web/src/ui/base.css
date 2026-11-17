@@ -1,0 +1,10 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font);
+  font-size: 16px;
+  color: var(--c-text);
+  background: var(--c-bg);
+  line-height: 1.45;
+}
+input, textarea, select, button { font: inherit; }

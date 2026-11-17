@@ -10,7 +10,9 @@
     "test": "vitest run",
     "check-content": "tsx scripts/check-content.ts",
     "admin:test": "vitest run tests/admin",
-    "admin:server": "node admin/build-server.mjs"
+    "admin:server": "node admin/build-server.mjs",
+    "admin:web": "vite --config admin/web/vite.config.ts",
+    "admin:build": "tsc -p tsconfig.json --noEmit && vite build --config admin/web/vite.config.ts && node admin/build-server.mjs"
   },
   "dependencies": {
     "@fontsource/comfortaa": "^5.1.0",
