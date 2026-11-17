@@ -29,4 +29,13 @@ describe('Локальный конфиг программы-киоска', () =
     expect(loadConfig(p).jellyfin?.user).toBe('kiosk');
     expect(JSON.parse(readFileSync(p, 'utf-8')).pinHash).toBe('scrypt$aa$bb');
   });
+
+  it('одно битое поле не сбрасывает PIN: иначе любой, кто знает жест, задаст свой', () => {
+    const p = join(dir(), 'config.json');
+    writeFileSync(p, JSON.stringify({ kioskUrl: 'не адрес', pinHash: 'scrypt$aa$bb', jellyfin: { internalUrl: 'мусор', user: 'kiosk', password: 'x' } }));
+    const cfg = loadConfig(p);
+    expect(cfg.pinHash).toBe('scrypt$aa$bb');
+    expect(cfg.kioskUrl).toBe('https://kiosk.339933.net/');
+    expect(cfg.jellyfin).toBeUndefined();
+  });
 });

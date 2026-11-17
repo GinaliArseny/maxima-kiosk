@@ -10,7 +10,7 @@ import { createMainWindow, openKiosk } from './mainWindow';
 import { isKioskHome } from './navigation';
 import { configPath, screensaverCachePath, serviceExitFlag } from './paths';
 import { hashPin, PinGuard, verifyPin } from './pin';
-import { checkProtections, winRegQuery } from './protections';
+import { checkProtections, winRegQuery, winTaskExists } from './protections';
 import { fetchScreensaverSettings, type Screensaver } from './remoteSettings';
 import { createScreensaverWindow } from './screensaverWindow';
 import { createServiceWindow } from './serviceWindow';
@@ -21,10 +21,18 @@ app.commandLine.appendSwitch('overscroll-history-navigation', '0');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 const GAME_LOGIN_URL = 'https://emailer.339933.net/game/';
+
+/** Запуск внешней программы без системного окна ошибки у посетителей, если что-то пошло не так. */
+function detached(cmd: string, args: string[]) {
+  const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
+  child.on('error', (err) => console.warn(`не запустился ${cmd}:`, err.message));
+  child.unref();
+}
 let allowQuit = false;
 
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
+app.on('before-quit', () => (allowQuit = true));
 app.on('window-all-closed', () => {
   /* киоск не закрывается сам */
 });
@@ -115,7 +123,7 @@ void app.whenReady().then(() => {
   });
   handle('service:protections', true, () =>
     process.platform === 'win32'
-      ? checkProtections(winRegQuery, { exePath: app.getPath('exe') })
+      ? checkProtections(winRegQuery, { exePath: app.getPath('exe'), taskExists: winTaskExists })
       : [{ name: 'Проверка доступна только на Windows', ok: false }],
   );
   handle('service:action', true, (name: string) => {
@@ -130,11 +138,13 @@ void app.whenReady().then(() => {
       // Флаг — сторож не перезапускает киоск, пока владелец работает на рабочем столе.
       mkdirSync(dirname(serviceExitFlag()), { recursive: true });
       writeFileSync(serviceExitFlag(), new Date().toISOString());
-      if (process.platform === 'win32') spawn('explorer.exe', [], { detached: true, stdio: 'ignore' }).unref();
+      if (process.platform === 'win32') detached('explorer.exe', []);
       allowQuit = true;
       app.exit(0);
     } else if (name === 'shutdown') {
-      if (process.platform === 'win32') spawn('shutdown', ['/s', '/t', '0'], { detached: true, stdio: 'ignore' }).unref();
+      // Окно киоска не должно мешать завершению работы Windows.
+      allowQuit = true;
+      if (process.platform === 'win32') detached('shutdown', ['/s', '/t', '0']);
     }
   });
   ipcMain.on('service:close', (e) => {

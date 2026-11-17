@@ -20,13 +20,24 @@ export const localConfigSchema = z.object({
 });
 export type LocalConfig = z.infer<typeof localConfigSchema>;
 
-/** Нет файла или он битый — значения по умолчанию: киоск должен запуститься всегда. */
+/**
+ * Нет файла или он битый — значения по умолчанию: киоск должен запуститься всегда.
+ * Поля разбираются по отдельности: одно битое поле не сбрасывает PIN (иначе любой,
+ * кто знает жест, задал бы свой).
+ */
 export function loadConfig(path: string): LocalConfig {
+  let raw: Record<string, unknown> = {};
   try {
-    return localConfigSchema.parse(JSON.parse(readFileSync(path, 'utf-8')));
+    const parsed = JSON.parse(readFileSync(path, 'utf-8'));
+    if (parsed && typeof parsed === 'object') raw = parsed;
   } catch {
-    return localConfigSchema.parse({});
+    /* нет файла или не JSON */
   }
+  const field = <K extends keyof typeof localConfigSchema.shape>(key: K) => {
+    const res = localConfigSchema.shape[key].safeParse(raw[key]);
+    return res.success ? res.data : undefined;
+  };
+  return localConfigSchema.parse({ kioskUrl: field('kioskUrl'), pinHash: field('pinHash'), jellyfin: field('jellyfin') });
 }
 
 export function saveConfig(path: string, cfg: LocalConfig): void {

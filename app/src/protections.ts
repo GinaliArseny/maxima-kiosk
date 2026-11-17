@@ -14,7 +14,10 @@ export type RegQuery = (key: string, value: string) => Promise<string | null>;
 const norm = (p: string) => p.replace(/^"|"$/g, '').trim().toLowerCase();
 
 /** Какие защиты Windows сейчас действуют. Ошибка чтения — пункт ✗, а не падение. */
-export async function checkProtections(reg: RegQuery, opts: { exePath: string }): Promise<{ name: string; ok: boolean }[]> {
+export async function checkProtections(
+  reg: RegQuery,
+  opts: { exePath: string; taskExists?: () => Promise<boolean> },
+): Promise<{ name: string; ok: boolean }[]> {
   const read = async (k: { key: string; value: string }) => {
     try {
       return await reg(k.key, k.value);
@@ -29,7 +32,8 @@ export async function checkProtections(reg: RegQuery, opts: { exePath: string })
     { name: 'Свайпы от краёв экрана выключены', ok: (await read(K.edgeSwipe)) === '0' },
     { name: 'Диспетчер задач выключен', ok: (await read(K.taskMgr)) === '1' },
     { name: 'Автовход учётки «Киоск»', ok: (await read(K.autoLogon)) === '1' },
-    { name: 'Сторож перезапуска', ok: Boolean(await read(K.watchdog)) },
+    // Ветка TaskCache может быть закрыта для обычной учётки — тогда спрашиваем планировщик.
+    { name: 'Сторож перезапуска', ok: Boolean(await read(K.watchdog)) || Boolean(await opts.taskExists?.().catch(() => false)) },
   ];
 }
 
@@ -47,4 +51,10 @@ export function parseRegQuery(out: string): string | null {
 export const winRegQuery: RegQuery = (key, value) =>
   new Promise((resolve) =>
     execFile('reg', ['query', key, '/v', value], { windowsHide: true }, (err, stdout) => resolve(err ? null : parseRegQuery(stdout))),
+  );
+
+/** Есть ли задача сторожа в планировщике (только Windows). */
+export const winTaskExists = (): Promise<boolean> =>
+  new Promise((resolve) =>
+    execFile('schtasks', ['/query', '/tn', 'MaximaKioskWatchdog'], { windowsHide: true }, (err) => resolve(!err)),
   );

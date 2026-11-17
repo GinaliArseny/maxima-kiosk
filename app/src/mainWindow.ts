@@ -49,6 +49,11 @@ export function createMainWindow(deps: MainWindowDeps): BrowserWindow {
   powerSaveBlocker.start('prevent-display-sleep');
 
   const wc = win.webContents;
+  // Скачивание открыло бы системный диалог «Сохранить как» — через него можно уйти из киоска.
+  wc.session.on('will-download', (e) => e.preventDefault());
+  // Сайту и игре не нужны камера, микрофон, уведомления и т. п.
+  wc.session.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+  wc.session.setPermissionCheckHandler(() => false);
   // Зум страницы двумя пальцами запрещён (у каждой новой страницы заново).
   wc.on('did-finish-load', () => void wc.setVisualZoomLevelLimits(1, 1).catch(() => {}));
   wc.on('will-navigate', (e, url) => !isAllowedUrl(url) && e.preventDefault());

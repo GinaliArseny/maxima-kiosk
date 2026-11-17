@@ -24,25 +24,55 @@ function Set-Reg($path, $name, $value, $type) {
 if (-not (Test-Path $ExePath)) { Fail "Нет программы $ExePath — сначала установите «MaximaKiosk Setup.exe»" }
 Ok "Программа найдена: $ExePath"
 
-$adminSid = 'S-1-5-32-544'
-try {
-  $others = @(Get-LocalGroupMember -SID $adminSid | Where-Object { $_.ObjectClass -eq 'User' -and $_.Name -notmatch "\\$([regex]::Escape($KioskUser))$" })
-} catch { $others = @(); Warn 'Не удалось прочитать список администраторов — проверьте вручную, что есть другая учётка-администратор' }
-if ($others.Count -eq 0) { Fail 'На компьютере нет другой учётки-администратора. Создайте её до блокировки — иначе обслуживать киоск будет нечем.' }
+# Члены группы «Администраторы» через ADSI: Get-LocalGroupMember падает на «осиротевших» SID.
+function Get-AdminMembers {
+  $name = (New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')).Translate([Security.Principal.NTAccount]).Value.Split('\')[-1]
+  $group = [ADSI]"WinNT://$env:COMPUTERNAME/$name,group"
+  @($group.Invoke('Members')) | ForEach-Object {
+    [pscustomobject]@{
+      Name = $_.GetType().InvokeMember('Name', 'GetProperty', $null, $_, $null)
+      Path = $_.GetType().InvokeMember('ADsPath', 'GetProperty', $null, $_, $null)
+    }
+  }
+}
+# Живой администратор, кроме киоска: локальная включённая учётка или доменная/облачная.
+function Test-OtherAdmin($m) {
+  if ($m.Name -eq $KioskUser) { return $false }
+  # Локальная учётка: ADsPath вида WinNT://[РАБОЧАЯ_ГРУППА/]ИМЯ_ПК/имя.
+  if ($m.Path -match "/$([regex]::Escape($env:COMPUTERNAME))/[^/]+$") {
+    $u = Get-LocalUser -Name $m.Name -ErrorAction SilentlyContinue
+    return [bool]($u -and $u.Enabled)
+  }
+  return $m.Name -notmatch '^S-1-'  # SID без имени — удалённая учётка
+}
+$admins = @(Get-AdminMembers)
+$others = @($admins | Where-Object { Test-OtherAdmin $_ })
+if ($others.Count -eq 0) { Fail 'На компьютере нет другой включённой учётки-администратора. Создайте её до блокировки — иначе обслуживать киоск будет нечем.' }
 Ok "Учётка-администратор для обслуживания: $($others[0].Name)"
 
 # ── 1. Учётка «Киоск» ───────────────────────────────────────────────────────
+Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+$machine = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('Machine')
+function Read-Plain($prompt) {
+  $sec = Read-Host $prompt -AsSecureString
+  [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+}
 $user = Get-LocalUser -Name $KioskUser -ErrorAction SilentlyContinue
 if (-not $user) {
-  $pw = Read-Host "Задайте пароль для новой учётки $KioskUser" -AsSecureString
-  $user = New-LocalUser -Name $KioskUser -Password $pw -PasswordNeverExpires -AccountNeverExpires -FullName 'Киоск' -Description 'Инфокиоск «Максима»'
-  Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $KioskUser
+  $plain = Read-Plain "Задайте пароль для новой учётки $KioskUser"
+  $user = New-LocalUser -Name $KioskUser -Password (ConvertTo-SecureString $plain -AsPlainText -Force) -PasswordNeverExpires -AccountNeverExpires -FullName 'Киоск' -Description 'Инфокиоск «Максима»'
+  Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $KioskUser -ErrorAction SilentlyContinue
   Ok "Создана учётка $KioskUser (обычный пользователь)"
 } else {
-  $pw = Read-Host "Пароль учётки $KioskUser (нужен для автовхода)" -AsSecureString
-  Ok "Учётка $KioskUser уже есть"
+  # Неверный пароль в автовходе = экран входа Windows вместо стенда после перезагрузки.
+  do {
+    $plain = Read-Plain "Пароль учётки $KioskUser (нужен для автовхода)"
+    $valid = $machine.ValidateCredentials($KioskUser, $plain)
+    if (-not $valid) { Warn 'Пароль не подошёл — попробуйте ещё раз' }
+  } until ($valid)
+  Ok "Учётка $KioskUser уже есть, пароль проверен"
 }
-if (Get-LocalGroupMember -SID $adminSid | Where-Object { $_.Name -match "\\$([regex]::Escape($KioskUser))$" }) {
+if (@($admins | Where-Object { $_.Name -eq $KioskUser }).Count -gt 0) {
   Fail "$KioskUser — администратор. Уберите её из группы «Администраторы» и запустите скрипт снова."
 }
 $sid = $user.SID.Value
@@ -80,7 +110,6 @@ Ok 'Свайпы от краёв экрана выключены'
 Set-Reg 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'HideFastUserSwitching' 1 'DWord'
 Ok 'Быстрая смена пользователя скрыта'
 
-$plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pw))
 $wl = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 Set-Reg $wl 'AutoAdminLogon' '1' 'String'
 Set-Reg $wl 'DefaultUserName' $KioskUser 'String'

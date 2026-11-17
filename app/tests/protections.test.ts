@@ -46,6 +46,14 @@ describe('Самопроверка защиты Windows', () => {
     expect(res.every((r) => !r.ok)).toBe(true);
   });
 
+  it('сторож: ветку TaskCache учётке «Киоск» не прочитать — проверяется через список задач', async () => {
+    const res = await checkProtections(registry({ [`${PROTECTION_KEYS.watchdog.key}|Id`]: null }), {
+      exePath: EXE,
+      taskExists: async () => true,
+    });
+    expect(res.find((r) => r.name === 'Сторож перезапуска')!.ok).toBe(true);
+  });
+
   it('разбор вывода reg query: строка и DWORD', () => {
     expect(parseRegQuery('\r\nHKEY_CURRENT_USER\\X\r\n    Shell    REG_SZ    C:\\Program Files\\MaximaKiosk\\MaximaKiosk.exe\r\n\r\n')).toBe(EXE);
     expect(parseRegQuery('\r\nHKEY_LOCAL_MACHINE\\Y\r\n    AllowEdgeSwipe    REG_DWORD    0x0\r\n')).toBe('0');

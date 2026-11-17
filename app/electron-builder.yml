@@ -21,3 +21,5 @@ nsis:
   createDesktopShortcut: false
   createStartMenuShortcut: true
   shortcutName: Киоск «Максима»
+  # Не запускать после установки: под администратором окно на весь экран без PIN не закрыть.
+  runAfterFinish: false

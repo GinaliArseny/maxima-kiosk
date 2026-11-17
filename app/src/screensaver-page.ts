@@ -1,5 +1,6 @@
 /** Плеер заставки: ролики по кругу; вертикальные — по центру с размытым фоном из того же кадра. */
 import { createPlaylistCursor, type VideoItem } from './jellyfin';
+import { createStallWatch } from './stallWatch';
 
 interface SaverApi {
   items: () => Promise<{ items: (VideoItem & { url: string })[]; muted: boolean }>;
@@ -20,9 +21,11 @@ async function start() {
   const queue = createPlaylistCursor(items);
   let current: VideoItem | null = null;
   let guard: ReturnType<typeof setTimeout> | undefined;
+  let stall: { stop(): void } | undefined;
 
   const playNext = () => {
     clearTimeout(guard);
+    stall?.stop();
     current = queue.next();
     if (!current) return saver.dismiss();
     const url = urls.get(current.id)!;
@@ -39,7 +42,12 @@ async function start() {
     playNext();
   };
 
-  fg.addEventListener('playing', () => clearTimeout(guard));
+  fg.addEventListener('playing', () => {
+    clearTimeout(guard);
+    // Посреди ролика поток может замолчать без error — 20 с без движения = сломан.
+    stall?.stop();
+    stall = createStallWatch({ currentTime: () => fg.currentTime, onStall: broken, checkMs: 5000, stallMs: 20_000 });
+  });
   fg.addEventListener('ended', playNext);
   fg.addEventListener('error', () => {
     console.warn('ролик не открылся:', current?.name, fg.error?.code);
