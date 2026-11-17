@@ -7,8 +7,10 @@ import { ClinicForm } from './pages/ClinicForm';
 import { Dashboard } from './pages/Dashboard';
 import { Doctors } from './pages/Doctors';
 import { Documents } from './pages/Documents';
+import { History } from './pages/History';
 import { Login } from './pages/Login';
 import { Prices } from './pages/Prices';
+import { Screensaver } from './pages/Screensaver';
 import styles from './ui/admin.module.css';
 
 const NAV: [string, string][] = [
@@ -63,6 +65,8 @@ export default function App() {
               <Route path="/prices" element={<Prices />} />
               <Route path="/clinic" element={<ClinicForm />} />
               <Route path="/authorities" element={<AuthoritiesForm />} />
+              <Route path="/screensaver" element={<Screensaver />} />
+              <Route path="/history" element={<History />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
