@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Админ клиники сам правит врачей, документы, прайс, сведения о клинике, надзорные органы и настройки заставки через `https://kiosk-admin.339933.net`; сохранение сразу публикует, киоск подхватывает за 1–3 минуты.
+**Goal:** Админ клиники сам правит врачей, документы, прайс, сведения о клинике, надзорные органы и настройки заставки через `https://kiosk.339933.net/admin/`; сохранение сразу публикует, киоск подхватывает за 1–3 минуты.
 
-**Architecture:** Данные киоска переезжают из сборки в `/opt/maxima-kiosk/content/{data,docs,doctors}`; `dist/data|docs|doctors` на сервере — симлинки туда, выкладка их не трогает. Сервер админки (Fastify, Docker, `127.0.0.1:<порт>` за nginx) читает/пишет эти файлы через `ContentStore`: проверка общей zod-схемой + межфайловые связи, атомарная запись, снимок в историю, `version.json`. Веб-админка — React SPA, отдаётся тем же сервером. Сайт киоска раз в минуту смотрит `data/version.json` и перезагружается в простое.
+**Architecture:** Данные киоска переезжают из сборки в `/opt/maxima-kiosk/content/{data,docs,doctors}`; `dist/data|docs|doctors` на сервере — симлинки туда, выкладка их не трогает. Сервер админки (Fastify, Docker, `127.0.0.1:<порт>`, nginx проксирует `kiosk.339933.net/admin/`) читает/пишет эти файлы через `ContentStore`: проверка общей zod-схемой + межфайловые связи, атомарная запись, снимок в историю, `version.json`. Веб-админка — React SPA, отдаётся тем же сервером. Сайт киоска раз в минуту смотрит `data/version.json` и перезагружается в простое.
 
 **Tech Stack:** существующие React 18.3 / TS 5.6 / Vite 5.4 / zod 3.23 / Vitest 2.1; сервер — Node 22, Fastify 5 (+ `@fastify/cookie`, `@fastify/multipart`, `@fastify/static`, `@fastify/rate-limit`), `bcryptjs`, `sharp`; сборка сервера — esbuild; Docker (`node:22-slim`).
 
@@ -39,7 +39,7 @@
 - Modify: `src/data/schema.ts` — `doctorSchema.hidden`, `screensaverSchema`, `EDITABLE_FILES`
 - Modify: `src/screens/Doctors.tsx`, `src/screens/DoctorCard.tsx` — скрытые врачи не показываются
 - Create: `public/data/screensaver.json` — `{"enabled": false, "idleMinutes": 3, "muted": true, "sources": []}`
-- Modify: `vite.config.ts` — плагин `closeBundle` удаляет `dist/data`, `dist/docs`, `dist/doctors`; runtime-кэш `/doctors/*.webp` (StaleWhileRevalidate, `kiosk-photos`); vite dev по-прежнему отдаёт их из `public/`
+- Modify: `vite.config.ts` — плагин `closeBundle` удаляет `dist/data`, `dist/docs`, `dist/doctors`; runtime-кэш `/doctors/*.webp` (StaleWhileRevalidate, `kiosk-photos`); `navigateFallbackDenylist: [/^\/admin/]` — service worker киоска не подменяет страницы админки; vite dev по-прежнему отдаёт их из `public/`
 - Modify: `scripts/check-content.ts` — проверяет и `screensaver.json`
 - Test: `tests/screens/doctors.test.tsx`, `tests/data/schema.test.ts` (new), `tests/build/dist.test.ts` (new)
 
@@ -53,7 +53,7 @@
 - [ ] **Step 1: Тесты**
   - `doctors.test.tsx`: `it('врач с hidden: true не показывается ни в списке, ни по прямой ссылке')` — `renderApp({ doctors: [видимый, {…, id: 'skryt', hidden: true}] })`; список не содержит ФИО скрытого; `route: '/doctors/skryt'` → экран «Врач не найден» (как для несуществующего id).
   - `schema.test.ts`: `screensaverSchema` принимает `public/data/screensaver.json`; отклоняет `idleMinutes: 0`, `itemId: 'abc'`; в `EDITABLE_FILES` 5 ключей.
-  - `dist.test.ts` (запускается после `npm run build`, пропускается через `it.skipIf(!existsSync('dist'))`): `dist/index.html` есть; `dist/data`, `dist/docs`, `dist/doctors` нет.
+  - `dist.test.ts` (запускается после `npm run build`, пропускается через `it.skipIf(!existsSync('dist'))`): `dist/index.html` есть; `dist/data`, `dist/docs`, `dist/doctors` нет; `dist/sw.js` содержит denylist для `/admin`.
 - [ ] **Step 2:** `npx vitest run tests/screens/doctors.test.tsx tests/data/schema.test.ts` → FAIL.
 - [ ] **Step 3:** Реализовать схему, фильтр `hidden` (в одном месте — там, где экраны берут врачей), плагин в `vite.config.ts`, runtime-кэш фото, проверку в `check-content`.
 - [ ] **Step 4:** `npm test && npm run build && npx vitest run tests/build/dist.test.ts` → всё PASS; `ls dist` без `data docs doctors`.
@@ -147,8 +147,9 @@
 - Consumes: `ContentStore`, `savePdf`, `savePhoto`.
 - Produces: `buildApp(opts: { contentRoot: string; usersFile: string; webDir?: string; secure?: boolean }): FastifyInstance`.
 - Пользователи: `usersFile` = `[{ login, hash }]`; `npm run admin:user -- <login>` спрашивает пароль дважды и добавляет/меняет.
+- Всё приложение под префиксом `/admin` (Fastify `prefix`): API — `/admin/api/…`, веб — `/admin/`. Ниже пути API даны без префикса `/admin`.
 - API (все, кроме входа, требуют сессию, иначе 401):
-  - `POST /api/login {login,password}` → 204 + cookie `ka_sid` | 401 `{error:'Неверный логин или пароль'}`; лимит 5/мин/IP → 429.
+  - `POST /api/login {login,password}` → 204 + cookie `ka_sid` (`Path=/admin`) | 401 `{error:'Неверный логин или пароль'}`; лимит 5/мин/IP → 429.
   - `POST /api/logout` → 204. `GET /api/me` → `{login}`.
   - `GET /api/content/:file` → `{data, version}`; неизвестный файл → 404.
   - `PUT /api/content/:file {data, baseVersion}` → 200 `{version}` | 409 `{error:'Данные изменились — обновите страницу'}` | 422 `{issues}`.
@@ -158,14 +159,14 @@
   - Статика `webDir` с fallback на `index.html`; заголовок `X-Robots-Tag: noindex, nofollow` на всём.
 - Env для `main.ts`: `CONTENT_ROOT=/content`, `USERS_FILE=/admin-data/users.json`, `PORT`, `HOST=0.0.0.0`; сессии в памяти (рестарт = перелогин — допустимо).
 
-- [ ] **Step 1: Тесты:** `it('без входа API отвечает 401')`; `it('вход с верным паролем открывает доступ, с неверным — 401 с русским текстом')`; `it('шестая попытка входа за минуту — 429')`; `it('PUT невалидных данных → 422 с issues, валидных → 200 и новая версия')`; `it('PUT со старой версией → 409')`; `it('загрузка PDF возвращает имя файла, и его можно сослаться в documents.json')`; `it('cookie сессии httpOnly и SameSite=Strict')`.
+- [ ] **Step 1: Тесты:** `it('без входа API отвечает 401')`; `it('вход с верным паролем открывает доступ, с неверным — 401 с русским текстом')`; `it('шестая попытка входа за минуту — 429')`; `it('PUT невалидных данных → 422 с issues, валидных → 200 и новая версия')`; `it('PUT со старой версией → 409')`; `it('загрузка PDF возвращает имя файла, и его можно сослаться в documents.json')`; `it('cookie сессии httpOnly, SameSite=Strict и Path=/admin')`.
 - [ ] **Step 2:** → FAIL. **Step 3:** реализовать. **Step 4:** → PASS.
 - [ ] **Step 5:** Коммит `Админка: HTTP API с входом`.
 
 ### Task 6: Веб-админка: каркас, вход, главная с требованиями, клиника, надзорные органы
 
 **Files:**
-- Create: `admin/web/index.html`, `admin/web/vite.config.ts` (root `admin/web`, outDir `admin/web/dist`, dev-прокси `/api` → `localhost:8787`), `admin/web/src/main.tsx`, `App.tsx`, `api.ts`, `ui/` (поле, кнопка, список ошибок — свои CSS-модули на токенах `src/theme/tokens.css`), `pages/Login.tsx`, `pages/Dashboard.tsx`, `pages/ClinicForm.tsx`, `pages/AuthoritiesForm.tsx`
+- Create: `admin/web/index.html`, `admin/web/vite.config.ts` (root `admin/web`, outDir `admin/web/dist`, `base: '/admin/'`, dev-прокси `/admin/api` → `localhost:8787`), `admin/web/src/main.tsx`, `App.tsx`, `api.ts`, `ui/` (поле, кнопка, список ошибок — свои CSS-модули на токенах `src/theme/tokens.css`), `pages/Login.tsx`, `pages/Dashboard.tsx`, `pages/ClinicForm.tsx`, `pages/AuthoritiesForm.tsx`
 - Modify: `package.json` — `"admin:web": "vite --config admin/web/vite.config.ts"`, `"admin:build": "vite build --config admin/web/vite.config.ts && node admin/build-server.mjs"`
 - Create: `admin/build-server.mjs` (esbuild: `admin/server/main.ts` → `admin/server/dist/main.mjs`, `platform: node`, `external: ['sharp']`)
 - Test: `tests/admin/web/*.test.tsx` (jsdom; fetch подменён фейковым API)
@@ -219,21 +220,21 @@
 ### Task 9: Выкладка: перенос данных, Docker, nginx, бэкап
 
 **Files:**
-- Create: `admin/Dockerfile` (`node:22-slim`, `npm ci --omit=dev` только для `sharp`, копирует `admin/server/dist`, `admin/web/dist`), `admin/docker-compose.yml` (порт `127.0.0.1:<свободный>:8787`, тома `/opt/maxima-kiosk/content:/content`, `/opt/maxima-kiosk/admin-data:/admin-data`, `restart: unless-stopped`), `deploy/nginx-admin.conf`, `deploy/migrate-content.sh`, `deploy/backup-content.sh`
+- Create: `admin/Dockerfile` (`node:22-slim`, `npm ci --omit=dev` только для `sharp`, копирует `admin/server/dist`, `admin/web/dist`), `admin/docker-compose.yml` (порт `127.0.0.1:<свободный>:8787`, тома `/opt/maxima-kiosk/content:/content`, `/opt/maxima-kiosk/admin-data:/admin-data`, `restart: unless-stopped`), `deploy/nginx-admin.inc`, `deploy/migrate-content.sh`, `deploy/backup-content.sh`
 - Modify: `deploy/remote-install.sh` (админ-часть, идемпотентно), `deploy/README.md`, `.claude/rules/ARCHITECTURE.md` (модули `admin/`, команды), `.claude/CLAUDE.md` (источник правды данных — сервер)
 
 **Interfaces:**
 - `migrate-content.sh` (однократно, идемпотентно): если `content/data` нет — `cp -a dist/{data,docs,doctors} content/`; затем заменить `dist/data|docs|doctors` симлинками на `../content/…`. Если `dist/X` уже симлинк — ничего.
 - `backup-content.sh` → `/etc/cron.daily/maxima-kiosk-backup`: `tar czf /opt/maxima-kiosk/backups/content-$(date +%F).tgz -C /opt/maxima-kiosk content admin-data`, удалить старше 30 дней.
 - Выкладка сайта в README: `rsync -az --exclude data/ --exclude docs/ --exclude doctors/ dist/ root@…:/opt/maxima-kiosk/dist/`.
-- `nginx-admin.conf`: `server_name kiosk-admin.339933.net`, `client_max_body_size 32m`, `proxy_pass http://127.0.0.1:<порт>`; certbot `--nginx --redirect`.
+- `nginx-admin.inc`: `location /admin/ { client_max_body_size 32m; proxy_pass http://127.0.0.1:<порт>; proxy_set_header Host/X-Forwarded-For/X-Forwarded-Proto; add_header X-Robots-Tag "noindex, nofollow" always; add_header Cache-Control "no-store" always; }`. Конфиг сайта на сервере уже дописан certbot'ом, поэтому `remote-install.sh` не перезаписывает его, а вставляет строку `include /opt/maxima-kiosk/deploy/nginx-admin.inc;` в `server`-блок с `listen 443`, если её там нет, затем `nginx -t` (при ошибке — вернуть бэкап конфига) и `reload`.
 
-- [ ] **Step 1:** Перед выкладкой: пользователь добавил A-запись `kiosk-admin` → `80.78.253.231` (`dig +short kiosk-admin.339933.net` с публичного DNS). Свободный порт: `ss -ltn` на VPS.
+- [ ] **Step 1:** Свободный порт на VPS: `ss -ltn`.
 - [ ] **Step 2:** `npm test && npm run build && npm run admin:build` → без ошибок.
 - [ ] **Step 3:** **С разрешения владельца** (деплой): rsync `dist/` с `--exclude`, `admin/`, `deploy/`; на сервере `migrate-content.sh`, `remote-install.sh`; `docker compose -f admin/docker-compose.yml up -d --build`; `admin:user` для владельца и админа клиники (пароль вводит владелец).
 - [ ] **Step 4: Проверка:**
   - `curl -s https://kiosk.339933.net/data/clinic.json | head -c 100` — данные отдаются через симлинк;
-  - `curl -sI https://kiosk-admin.339933.net/api/me` → 401;
+  - `curl -sI https://kiosk.339933.net/admin/api/me` → 401; `curl -s https://kiosk.339933.net/admin/ | grep -c '<div id="root"'` → 1;
   - в админке поменять часы работы → через ≤ 3 мин на `kiosk.339933.net` новые часы;
   - повторный `rsync dist/` → правка админки на месте;
   - `ls /opt/maxima-kiosk/backups` после ручного запуска бэкапа.
