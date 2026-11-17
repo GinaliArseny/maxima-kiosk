@@ -5,7 +5,10 @@ import { AuthLostContext } from './auth';
 import { AuthoritiesForm } from './pages/AuthoritiesForm';
 import { ClinicForm } from './pages/ClinicForm';
 import { Dashboard } from './pages/Dashboard';
+import { Doctors } from './pages/Doctors';
+import { Documents } from './pages/Documents';
 import { Login } from './pages/Login';
+import { Prices } from './pages/Prices';
 import styles from './ui/admin.module.css';
 
 const NAV: [string, string][] = [
@@ -55,6 +58,9 @@ export default function App() {
           <main className={styles.main}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/doctors" element={<Doctors />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/prices" element={<Prices />} />
               <Route path="/clinic" element={<ClinicForm />} />
               <Route path="/authorities" element={<AuthoritiesForm />} />
               <Route path="*" element={<Navigate to="/" replace />} />

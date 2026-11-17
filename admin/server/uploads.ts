@@ -2,23 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
+import { slug } from '../shared/slug';
 import { ValidationError } from './validate';
 
 export const MAX_PDF_BYTES = 30 * 1024 * 1024;
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const PHOTO_WIDTH = 600;
-
-const TRANSLIT: Record<string, string> = {
-  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'i', к: 'k', л: 'l',
-  м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh',
-  щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'iu', я: 'ia',
-};
-
-/** Транслит + kebab-case: «Иванова Анна» → 'ivanova-anna'. Пустой результат → 'file'. */
-export function slug(text: string): string {
-  const latin = [...text.toLowerCase()].map((c) => TRANSLIT[c] ?? c).join('');
-  return latin.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'file';
-}
 
 const suffix = () => randomBytes(3).toString('hex');
 const fail = (message: string): never => {

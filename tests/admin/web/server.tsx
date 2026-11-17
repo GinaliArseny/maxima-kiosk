@@ -11,6 +11,15 @@ import { addUser } from '../../../admin/server/auth';
 import { ContentStore } from '../../../admin/server/contentStore';
 import { makeContentRoot } from '../helpers';
 
+/** jsdom-File не умеет arrayBuffer() — читаем как браузер, через FileReader. */
+const readBlob = (blob: Blob) =>
+  new Promise<ArrayBuffer>((done, fail) => {
+    const r = new FileReader();
+    r.onload = () => done(r.result as ArrayBuffer);
+    r.onerror = () => fail(r.error);
+    r.readAsArrayBuffer(blob);
+  });
+
 /**
  * Настоящий сервер админки во временном каталоге; fetch браузера направлен в него
  * (граница сети). Cookie сессии переносится между запросами, как в браузере.
@@ -27,14 +36,26 @@ export async function startAdmin() {
     const url = new URL(String(input), 'http://localhost/');
     const path = url.pathname.startsWith('/admin/') ? url.pathname : `/admin${url.pathname}`;
     const method = init.method ?? 'GET';
-    const isForm = init.body instanceof FormData;
     requests.push({ method, url: path, body: typeof init.body === 'string' ? JSON.parse(init.body) : undefined });
-    const res = await app.inject({
-      method: method as 'GET',
-      url: path + url.search,
-      headers: { ...(init.headers as Record<string, string>), ...(cookie && { cookie }) },
-      ...(isForm ? { body: init.body as FormData } : { payload: init.body as string | undefined }),
-    });
+    const headers: Record<string, string> = { ...(init.headers as Record<string, string>), ...(cookie && { cookie }) };
+    let payload: string | Buffer | undefined = init.body as string | undefined;
+    if (init.body instanceof FormData) {
+      // FormData из jsdom → multipart вручную (как его закодировал бы браузер).
+      const boundary = '----kiosk' + Math.random().toString(16).slice(2);
+      const chunks: Buffer[] = [];
+      for (const [name, value] of init.body.entries()) {
+        if (typeof value === 'string') {
+          chunks.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
+        } else {
+          const buf = Buffer.from(await readBlob(value));
+          chunks.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"; filename="${value.name}"\r\nContent-Type: ${value.type || 'application/octet-stream'}\r\n\r\n`), buf, Buffer.from('\r\n'));
+        }
+      }
+      chunks.push(Buffer.from(`--${boundary}--\r\n`));
+      payload = Buffer.concat(chunks);
+      headers['content-type'] = `multipart/form-data; boundary=${boundary}`;
+    }
+    const res = await app.inject({ method: method as 'GET', url: path + url.search, headers, payload });
     const set = res.cookies.find((c) => c.name === 'ka_sid');
     if (set) cookie = set.value ? `ka_sid=${set.value}` : '';
     const body = res.statusCode === 204 ? null : res.rawPayload;
