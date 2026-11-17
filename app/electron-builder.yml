@@ -7,7 +7,10 @@ files:
   - dist/**
   - pages/**
   - package.json
+npmRebuild: false
 win:
+  # Правка ресурсов exe (иконка, версия) требует rcedit под Wine на macOS — пропускаем.
+  signAndEditExecutable: false
   target:
     - target: nsis
       arch: [x64]

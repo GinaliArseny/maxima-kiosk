@@ -193,7 +193,9 @@ void app.whenReady().then(() => {
   ipcMain.on('screensaver:dismiss', (e) => {
     if (saver && e.sender === saver.webContents) stopSaver();
   });
-  createIdleWatcher({
+  // Разработка: KIOSK_DEV_STREAMS — заставка сразу при старте, без учёта простоя этого компьютера.
+  if (process.env.KIOSK_DEV === '1' && process.env.KIOSK_DEV_STREAMS) setTimeout(() => void startSaver(), 3000);
+  else createIdleWatcher({
     getIdleSeconds: () => powerMonitor.getSystemIdleTime(),
     thresholdSec,
     pollMs: 5000,

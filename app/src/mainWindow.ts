@@ -49,7 +49,8 @@ export function createMainWindow(deps: MainWindowDeps): BrowserWindow {
   powerSaveBlocker.start('prevent-display-sleep');
 
   const wc = win.webContents;
-  wc.setVisualZoomLevelLimits(1, 1);
+  // Зум страницы двумя пальцами запрещён (у каждой новой страницы заново).
+  wc.on('did-finish-load', () => void wc.setVisualZoomLevelLimits(1, 1).catch(() => {}));
   wc.on('will-navigate', (e, url) => !isAllowedUrl(url) && e.preventDefault());
   wc.on('will-redirect', (e, url) => !isAllowedUrl(url) && e.preventDefault());
   wc.on('will-frame-navigate', (e) => !e.isMainFrame && !isAllowedUrl(e.url) && e.preventDefault());

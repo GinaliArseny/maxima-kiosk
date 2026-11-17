@@ -22,6 +22,7 @@ export function createScreensaverWindow(): BrowserWindow {
   });
   if (!dev) win.setAlwaysOnTop(true, 'screen-saver', 3);
   win.webContents.on('will-navigate', (e) => e.preventDefault());
+  if (dev) win.webContents.on('console-message', (e) => console.log('[заставка]', e.message));
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.once('ready-to-show', () => {
     win.show();

@@ -41,7 +41,10 @@ async function start() {
 
   fg.addEventListener('playing', () => clearTimeout(guard));
   fg.addEventListener('ended', playNext);
-  fg.addEventListener('error', broken);
+  fg.addEventListener('error', () => {
+    console.warn('ролик не открылся:', current?.name, fg.error?.code);
+    broken();
+  });
   fg.addEventListener('loadedmetadata', () => {
     // Кадр уже экрана (вертикальное видео) — включаем размытый фон из того же ролика.
     const narrow = fg.videoWidth / fg.videoHeight < window.innerWidth / window.innerHeight - 0.05;
