@@ -8,11 +8,13 @@ Touch-сайт для инфокиоска (~40", Windows, Chrome в kiosk-ре�
 - Dev-сервер: `npm run dev`
 - Сборка: `npm run build` → `dist/`
 - Проверка полноты контента: `npm run check-content` (таблица 28 пунктов, exit 1 при дыре)
-- Деплой: см. `deploy/README.md` (rsync `dist/` на VPS Reg.ru 80.78.253.231, `kiosk.339933.net`)
+- Админка: `npm run admin:test`, `npm run admin:build`
+- Деплой: см. `deploy/README.md` (rsync `dist/` **с --exclude data/ docs/ doctors/** на VPS Reg.ru 80.78.253.231, `kiosk.339933.net`; админка — Docker)
 
 ## Паттерны
 
-- Данные — только в `public/data/*.json` (+ PDF в `public/docs/`). В компонентах никаких захардкоженных реквизитов/врачей/документов. Схемы — `src/data/schema.ts` (zod), они же типы.
+- Данные киоска на сервере живут в `/opt/maxima-kiosk/content/` и правятся админкой (`kiosk.339933.net/admin/`) — это источник правды; `public/data` в репо — стартовое наполнение и данные для разработки. Ключей/паролей (Jellyfin и т. п.) в публичных JSON и в репо нет.
+- Данные — только в JSON (+ PDF). В компонентах никаких захардкоженных реквизитов/врачей/документов. Схемы — `src/data/schema.ts` (zod), они же типы.
 - Нет данных → элемента нет на экране. Никаких заглушек «скоро будет». Пока `clinic.demo: true` — на экране лента «ДЕМО-ДАННЫЕ».
 - Внешние URL никогда не открываются навигацией — только через `useExternalLink().open()` (QR-модал). Исключение — `clinic.gameUrl` (переход в той же вкладке).
 - Без аналитики, cookies, CDN, форм и полей ввода.
@@ -23,6 +25,6 @@ Touch-сайт для инфокиоска (~40", Windows, Chrome в kiosk-ре�
 
 ## Документы
 
-- Спека: `docs/superpowers/specs/2026-11-16-maxima-kiosk-design.md`
-- План: `docs/superpowers/plans/2026-11-16-maxima-kiosk.md`
+- Спека v1: `docs/superpowers/specs/2026-11-16-maxima-kiosk-design.md`, план: `docs/superpowers/plans/2026-11-16-maxima-kiosk.md`
+- Спека этапа 2 (программа-киоск, заставка, админка): `docs/superpowers/specs/2026-11-17-kiosk-app-admin-design.md`; планы: `docs/superpowers/plans/2026-11-17-kiosk-admin.md`, `docs/superpowers/plans/2026-11-17-kiosk-app.md`
 - Требования юристов: `docs/legal/requirements-stand.doc`

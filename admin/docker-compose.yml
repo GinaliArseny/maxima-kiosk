@@ -1,0 +1,13 @@
+# Админка киоска: https://kiosk.339933.net/admin/ (nginx → 127.0.0.1:8096).
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: maxima-kiosk-admin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8096:8787"
+    volumes:
+      - /opt/maxima-kiosk/content:/content
+      - /opt/maxima-kiosk/admin-data:/admin-data
