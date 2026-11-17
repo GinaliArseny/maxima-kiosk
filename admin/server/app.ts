@@ -23,7 +23,7 @@ const isFile = (f: string): f is EditableFile => Object.hasOwn(EDITABLE_FILES, f
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   // За nginx ровно один прокси: req.ip — адрес, который дописал nginx, а не присланный клиентом.
-  const app = Fastify({ trustProxy: 1, bodyLimit: 5 * 1024 * 1024 });
+  const app = Fastify({ trustProxy: (_addr: string, hop: number) => hop < 1, bodyLimit: 5 * 1024 * 1024 });
   const store = new ContentStore(opts.contentRoot);
   await store.ensureVersion();
   const sessions = new Sessions();

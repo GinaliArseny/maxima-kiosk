@@ -48,8 +48,8 @@ export function History() {
                     setConfirm(null);
                     try {
                       await api.restore(h.id);
-                      setMsg({ ok: true, text: 'Версия возвращена — на киоске через 1–3 минуты' });
                       await load();
+                      setMsg({ ok: true, text: 'Версия возвращена — на киоске через 1–3 минуты' });
                     } catch (e) {
                       if (e instanceof ApiAuthError) return lost();
                       setMsg({
