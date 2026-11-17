@@ -1,6 +1,6 @@
 # Киоск «Максима» — правила работы
 
-Touch-сайт для инфокиоска (~40", Windows, Chrome в kiosk-режиме) в холле СЦ «Максима»: юридическая информация стенда (28 пунктов), приветствие, кнопка детской игры.
+Touch-сайт для инфокиоска (~40", Windows, программа-киоск на Electron из `app/`) в холле СЦ «Максима»: юридическая информация стенда (28 пунктов), приветствие, кнопка детской игры.
 
 ## Команды
 
@@ -9,6 +9,7 @@ Touch-сайт для инфокиоска (~40", Windows, Chrome в kiosk-ре�
 - Сборка: `npm run build` → `dist/`
 - Проверка полноты контента: `npm run check-content` (таблица 28 пунктов, exit 1 при дыре)
 - Админка: `npm run admin:test`, `npm run admin:build`
+- Программа-киоск: `npm --prefix app test`, `npm --prefix app run dist:win`; настройка ПК — `deploy/kiosk-setup.md`
 - Деплой: см. `deploy/README.md` (rsync `dist/` **с --exclude data/ docs/ doctors/** на VPS Reg.ru 80.78.253.231, `kiosk.339933.net`; админка — Docker)
 
 ## Паттерны

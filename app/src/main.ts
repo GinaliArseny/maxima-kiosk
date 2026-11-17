@@ -10,6 +10,7 @@ import { createMainWindow, openKiosk } from './mainWindow';
 import { isKioskHome } from './navigation';
 import { configPath, screensaverCachePath, serviceExitFlag } from './paths';
 import { hashPin, PinGuard, verifyPin } from './pin';
+import { checkProtections, winRegQuery } from './protections';
 import { fetchScreensaverSettings, type Screensaver } from './remoteSettings';
 import { createScreensaverWindow } from './screensaverWindow';
 import { createServiceWindow } from './serviceWindow';
@@ -112,7 +113,11 @@ void app.whenReady().then(() => {
     save({ ...cfg, jellyfin: parsed.data });
     return { ok: true };
   });
-  handle('service:protections', true, async () => [] as { name: string; ok: boolean }[]);
+  handle('service:protections', true, () =>
+    process.platform === 'win32'
+      ? checkProtections(winRegQuery, { exePath: app.getPath('exe') })
+      : [{ name: 'Проверка доступна только на Windows', ok: false }],
+  );
   handle('service:action', true, (name: string) => {
     if (name === 'relaunch') {
       allowQuit = true;
@@ -154,6 +159,14 @@ void app.whenReady().then(() => {
     if (alive(saver) || starting || alive(service)) return;
     starting = true;
     try {
+      // Только разработка: KIOSK_DEV_STREAMS=url1,url2 — ролики напрямую, без Jellyfin и настроек.
+      const devStreams = process.env.KIOSK_DEV === '1' ? process.env.KIOSK_DEV_STREAMS : undefined;
+      if (devStreams) {
+        saverItems = { items: devStreams.split(',').map((url, i) => ({ id: String(i), name: url, url })), muted: true };
+        saver = createScreensaverWindow();
+        saver.on('closed', () => (saver = null));
+        return;
+      }
       const s = await refreshSettings();
       if (!s?.enabled || !s.sources.length || !cfg.jellyfin) return;
       const jf = new JellyfinClient({ ...cfg.jellyfin, fetch });
