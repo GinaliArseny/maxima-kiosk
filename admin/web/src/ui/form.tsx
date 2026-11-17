@@ -246,3 +246,12 @@ export function FieldError({ path, label }: { path: string; label: string }) {
   const issue = issues.find((i) => i.path === path);
   return issue ? <small className={styles.fieldErr}>{issue.message}</small> : null;
 }
+
+/** Карточка, которая при открытии прокручивается в видимую область (длинные списки). */
+export function useScrollIntoView<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }, []);
+  return ref;
+}

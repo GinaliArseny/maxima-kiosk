@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import type { DocItem, DocSection } from '../../../../src/data/schema';
 import { REQUIREMENTS } from '../../../../src/legal/requirements';
 import { uniqueSlug } from '../../../shared/slug';
-import { bindField, DocForm, Field, FieldError, useDoc } from '../ui/form';
+import { bindField, DocForm, Field, useScrollIntoView, FieldError, useDoc } from '../ui/form';
 import { FileInput } from '../ui/FileInput';
 import { ListControls, moveItem } from '../ui/ListControls';
 import styles from '../ui/admin.module.css';
@@ -112,6 +112,7 @@ function ItemForm({
   isFresh: boolean;
 }) {
   const item = sections[at.s].items[at.i];
+  const card = useScrollIntoView<HTMLElement>();
   const kindId = useId();
   const path = ['documents', at.s, 'items', at.i].join('.');
   const setItem = (fn: (it: DocItem) => DocItem) =>
@@ -123,7 +124,7 @@ function ItemForm({
   const otherIds = sections.flatMap((sec, k) => sec.items.filter((_, j) => !(k === at.s && j === at.i)).map((it) => it.id));
 
   return (
-    <section className={styles.card} aria-label="Элемент документов">
+    <section ref={card} className={styles.card} aria-label="Элемент документов">
       <h3>{sections[at.s].title}: элемент</h3>
       <div className={styles.field}>
         <label htmlFor={kindId}>Вид</label>

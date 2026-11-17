@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { WEEKDAYS, type Doctor } from '../../../../src/data/schema';
 import { WEEKDAY_LABELS } from '../../../../src/kiosk/time';
 import { uniqueSlug } from '../../../shared/slug';
-import { bindField, DocForm, Field, useDoc } from '../ui/form';
+import { bindField, DocForm, Field, useScrollIntoView, useDoc } from '../ui/form';
 import { FileInput } from '../ui/FileInput';
 import { ListControls, moveItem } from '../ui/ListControls';
 import styles from '../ui/admin.module.css';
@@ -104,10 +104,11 @@ function DoctorForm({
   onName: (name: string) => void;
 }) {
   const d = doctors[i];
+  const card = useScrollIntoView<HTMLElement>();
   const b = (path: (string | number)[], optional = false) => bindField(doctors, update, 'doctors', [i, ...path], { optional });
   const name = b(['fullName']);
   return (
-    <section className={styles.card} aria-label="Карточка врача">
+    <section ref={card} className={styles.card} aria-label="Карточка врача">
       <h3>Карточка врача</h3>
       <div className={styles.row}>
         <Field

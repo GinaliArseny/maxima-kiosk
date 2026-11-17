@@ -91,3 +91,22 @@ describe('Веб-админка: документы и цены', () => {
     expect((await fileOf()).file).not.toBe(old);
   });
 });
+
+describe('Веб-админка: открытая карточка видна', () => {
+  it('«Изменить» прокручивает страницу к карточке врача', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    await renderLoggedIn('/doctors');
+    await screen.findByText('Миньков Александр Владимирович');
+    await userEvent.click(within(doctorRow('Миньков Александр Владимирович')).getByRole('button', { name: 'Изменить' }));
+    expect(scroll.mock.contexts[0]).toBe(screen.getByRole('region', { name: 'Карточка врача' }));
+  });
+
+  it('«Изменить» прокручивает страницу к элементу документов', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    await renderLoggedIn('/documents');
+    await userEvent.click(within((await screen.findAllByRole('listitem'))[0]).getByRole('button', { name: 'Изменить' }));
+    expect(scroll.mock.contexts[0]).toBe(screen.getByRole('region', { name: 'Элемент документов' }));
+  });
+});
