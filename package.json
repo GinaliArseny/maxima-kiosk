@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "check-content": "tsx scripts/check-content.ts",
-    "admin:test": "vitest run tests/admin"
+    "admin:test": "vitest run tests/admin",
+    "admin:server": "node admin/build-server.mjs"
   },
   "dependencies": {
     "@fontsource/comfortaa": "^5.1.0",
