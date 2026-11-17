@@ -126,6 +126,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
     { prefix: '/admin' },
   );
 
-  app.get('/admin', (_req, reply) => reply.redirect('/admin/'));
+  // С собранной админкой @fastify/static сам отдаёт index.html и на /admin, и на /admin/.
+  if (!opts.webDir || !existsSync(opts.webDir)) app.get('/admin', (_req, reply) => reply.redirect('/admin/'));
   return app;
 }

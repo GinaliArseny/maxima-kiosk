@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -141,4 +141,36 @@ it('файл пользователей без записей не пускае�
   apps.push(app);
   const res = await app.inject({ method: 'POST', url: '/admin/api/login', payload: { login: 'admin', password: 'x' } });
   expect(res.statusCode).toBe(401);
+});
+
+describe('Веб-админка отдаётся сервером', () => {
+  async function withWeb() {
+    const web = mkdtempSync(join(tmpdir(), 'kiosk-web-'));
+    writeFileSync(join(web, 'index.html'), '<!doctype html><div id="root"></div>');
+    mkdirSync(join(web, 'assets'));
+    writeFileSync(join(web, 'assets', 'app-123.js'), 'console.log(1)');
+    const usersFile = join(mkdtempSync(join(tmpdir(), 'kiosk-users-')), 'users.json');
+    const app = await buildApp({ contentRoot: makeContentRoot(), usersFile, webDir: web });
+    apps.push(app);
+    return app;
+  }
+
+  it('сервер с собранной админкой запускается и отдаёт страницу на /admin/', async () => {
+    const app = await withWeb();
+    const res = await app.inject({ method: 'GET', url: '/admin/' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('id="root"');
+  });
+
+  it('/admin без слэша ведёт на /admin/, сборочные файлы отдаются', async () => {
+    const app = await withWeb();
+    const bare = await app.inject({ method: 'GET', url: '/admin' });
+    expect([200, 301, 302]).toContain(bare.statusCode);
+    expect((await app.inject({ method: 'GET', url: '/admin/assets/app-123.js' })).statusCode).toBe(200);
+  });
+
+  it('неизвестный адрес API — 404, а не страница админки', async () => {
+    const app = await withWeb();
+    expect((await app.inject({ method: 'GET', url: '/admin/api/nope' })).statusCode).toBe(404);
+  });
 });
