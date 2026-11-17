@@ -3,7 +3,7 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
 // jsdom не реализует PointerEvent — без него теряются clientX/clientY в жестах.
-if (!('PointerEvent' in window)) {
+if (typeof window !== 'undefined' && !('PointerEvent' in window)) {
   class PointerEventPolyfill extends MouseEvent {
     pointerId: number;
     pointerType: string;
@@ -26,5 +26,5 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
-  window.location.hash = '';
+  if (typeof window !== 'undefined') window.location.hash = '';
 });

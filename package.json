@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build && node scripts/strip-content.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "check-content": "tsx scripts/check-content.ts"
+    "check-content": "tsx scripts/check-content.ts",
+    "admin:test": "vitest run tests/admin"
   },
   "dependencies": {
     "@fontsource/comfortaa": "^5.1.0",
@@ -21,6 +22,10 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/multipart": "^10.1.9",
+    "@fastify/rate-limit": "^11.2.2",
+    "@fastify/static": "^10.1.11",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
@@ -30,7 +35,11 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "bcryptjs": "^3.0.3",
+    "esbuild": "^0.28.2",
+    "fastify": "^5.12.8",
     "jsdom": "^25.0.1",
+    "sharp": "^0.35.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",

@@ -45,6 +45,11 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
+    // Сервер админки — в node; веб-админка — в jsdom, как сайт.
+    environmentMatchGlobs: [
+      ['tests/admin/web/**', 'jsdom'],
+      ['tests/admin/**', 'node'],
+    ],
     globals: true,
     setupFiles: ['tests/setup.ts'],
   },
