@@ -1,7 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import type { Doctor } from '../../src/data/schema';
 import { renderApp } from '../helpers/renderApp';
+import { readSeed } from '../helpers/seed';
 
 describe('Врачи и расписание', () => {
   it('список врачей с ФИО и специальностью', async () => {
@@ -54,5 +56,21 @@ describe('Врачи и расписание', () => {
     const table = await screen.findByRole('table', { name: 'Образование и квалификация' });
     expect(within(table).getByText(details)).toBeInTheDocument();
     expect(screen.queryByRole('table', { name: 'График приёма' }), 'без графика — без таблицы').not.toBeInTheDocument();
+  });
+
+  it('врач с hidden: true не показывается ни в списке, ни по прямой ссылке', async () => {
+    const seed = readSeed()['doctors.json'] as Doctor[];
+    const hidden: Doctor = { ...seed[0], id: 'skryt', fullName: 'Скрытов Скрыт Скрытович', hidden: true };
+    renderApp({ route: '/doctors', doctors: [...seed, hidden] });
+    expect(await screen.findByText('Демо Анна Сергеевна')).toBeInTheDocument();
+    expect(screen.queryByText('Скрытов Скрыт Скрытович')).not.toBeInTheDocument();
+  });
+
+  it('прямая ссылка на скрытого врача ведёт в список врачей', async () => {
+    const seed = readSeed()['doctors.json'] as Doctor[];
+    const hidden: Doctor = { ...seed[0], id: 'skryt', fullName: 'Скрытов Скрыт Скрытович', hidden: true };
+    renderApp({ route: '/doctors/skryt', doctors: [...seed, hidden] });
+    expect(await screen.findByText('Демо Анна Сергеевна')).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'График приёма' })).not.toBeInTheDocument();
   });
 });

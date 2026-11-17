@@ -1,4 +1,4 @@
-import { fileSchemas, type KioskData } from './schema';
+import { fileSchemas, type Doctor, type KioskData } from './schema';
 
 type DataFile = keyof typeof fileSchemas;
 
@@ -53,5 +53,5 @@ export async function loadKioskData(fetchImpl: typeof fetch = fetch, base = './d
     loadFile(fetchImpl, base, 'documents.json'),
     loadFile(fetchImpl, base, 'authorities.json'),
   ]);
-  return { clinic, doctors, sections, authorities } as KioskData;
+  return { clinic, doctors: (doctors as Doctor[]).filter((d) => !d.hidden), sections, authorities } as KioskData;
 }

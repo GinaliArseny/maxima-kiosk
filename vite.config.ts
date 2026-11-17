@@ -13,8 +13,12 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,mjs,css,html,woff2,svg,png,webp,jpg}'],
+        // Данные, документы и фото врачей правит админка на сервере — в прекэш сборки не попадают.
+        globIgnores: ['data/**', 'docs/**', 'doctors/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: 'index.html',
+        // Админка живёт под тем же доменом — SW киоска её страницы не подменяет.
+        navigateFallbackDenylist: [/^\/admin/],
         cleanupOutdatedCaches: true,
         // Киоск — одна вкладка без перезапусков: новый SW должен вставать сразу.
         skipWaiting: true,
@@ -24,6 +28,11 @@ export default defineConfig({
             urlPattern: ({ url }) => url.pathname.includes('/data/') && url.pathname.endsWith('.json'),
             handler: 'NetworkFirst',
             options: { cacheName: 'kiosk-data', networkTimeoutSeconds: 3 },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/doctors/') && url.pathname.endsWith('.webp'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'kiosk-photos' },
           },
           {
             urlPattern: ({ url }) => url.pathname.includes('/docs/') && url.pathname.endsWith('.pdf'),

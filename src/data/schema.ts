@@ -65,6 +65,8 @@ export const doctorSchema = z.object({
   schedule: z.object(
     Object.fromEntries(WEEKDAYS.map((d) => [d, nonEmpty.optional()])) as Record<Weekday, z.ZodOptional<typeof nonEmpty>>,
   ),
+  /** Скрыт админом: на киоске не показывается. */
+  hidden: z.boolean().optional(),
 });
 
 const legalRefs = z.array(z.number().int().min(1).max(28));
@@ -98,6 +100,19 @@ export const fileSchemas = {
   'authorities.json': z.array(authoritySchema),
 } as const;
 
+/** Настройки заставки программы-киоска. Публичный файл: только ID элементов Jellyfin, без ключей. */
+export const screensaverSchema = z.object({
+  enabled: z.boolean(),
+  idleMinutes: z.number().int().min(1).max(60),
+  muted: z.boolean(),
+  sources: z.array(z.object({ itemId: z.string().regex(/^[0-9a-f]{32}$/), label: nonEmpty.optional() })),
+});
+
+/** Файлы, которые правит админка: данные киоска + настройки заставки. */
+export const EDITABLE_FILES = { ...fileSchemas, 'screensaver.json': screensaverSchema } as const;
+export type EditableFile = keyof typeof EDITABLE_FILES;
+
+export type Screensaver = z.infer<typeof screensaverSchema>;
 export type Clinic = z.infer<typeof clinicSchema>;
 export type Credential = z.infer<typeof credentialSchema>;
 export type Doctor = z.infer<typeof doctorSchema>;

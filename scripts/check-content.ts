@@ -1,10 +1,10 @@
 /**
- * Проверка контента киоска: валидирует public/data/*.json, проверяет PDF
+ * Проверка контента киоска: валидирует public/data/*.json (включая screensaver.json), проверяет PDF
  * и печатает таблицу 28 пунктов требований. Exit 1 — невалидные данные или дыра.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { fileSchemas, type KioskData } from '../src/data/schema';
+import { EDITABLE_FILES, type KioskData } from '../src/data/schema';
 import { computeCoverage, type CoverageStatus } from '../src/legal/coverage';
 
 const root = resolve(import.meta.dirname, '..');
@@ -13,7 +13,7 @@ const docsDir = resolve(root, 'public/docs');
 
 let failed = false;
 const parsed: Record<string, unknown> = {};
-for (const [file, schema] of Object.entries(fileSchemas)) {
+for (const [file, schema] of Object.entries(EDITABLE_FILES)) {
   try {
     const res = schema.safeParse(JSON.parse(readFileSync(resolve(dataDir, file), 'utf-8')));
     if (!res.success) {
