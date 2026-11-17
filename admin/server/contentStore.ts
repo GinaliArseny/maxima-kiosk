@@ -27,6 +27,11 @@ interface Snapshot extends HistoryEntry {
 }
 
 const FILES = Object.keys(EDITABLE_FILES) as EditableFile[];
+
+/** Файлы, которых может не быть на сервере (появились после первой выкладки), и их значение по умолчанию. */
+const DEFAULTS: Partial<Record<EditableFile, unknown>> = {
+  'screensaver.json': { enabled: false, idleMinutes: 3, muted: true, sources: [] },
+};
 const hash = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 12);
 const serialize = (data: unknown) => JSON.stringify(data, null, 2) + '\n';
 
@@ -59,8 +64,16 @@ export class ContentStore {
   private path = (file: string) => join(this.root, 'data', file);
 
   async read(file: EditableFile): Promise<{ data: unknown; version: string }> {
-    const text = await readFile(this.path(file), 'utf-8');
+    const path = this.path(file);
+    const text = !existsSync(path) && file in DEFAULTS ? serialize(DEFAULTS[file]) : await readFile(path, 'utf-8');
     return { data: JSON.parse(text), version: hash(text) };
+  }
+
+  /** При запуске: нет data/version.json — создать, чтобы киоск взял эталон до первой правки. */
+  async ensureVersion(): Promise<void> {
+    const path = this.path('version.json');
+    if (existsSync(path)) return;
+    await writeAtomic(path, JSON.stringify({ version: `initial-${this.now().toISOString()}` }) + '\n');
   }
 
   private async readAll(): Promise<Record<EditableFile, unknown>> {

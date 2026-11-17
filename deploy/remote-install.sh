@@ -34,6 +34,10 @@ if ! grep -qF "$INC" $CONF; then
   cp $CONF $CONF.bak-$(date +%s)
   # Вставка в server-блок с listen 443 (его дописал certbot).
   sed -i "/listen 443 ssl;/a\    $INC" $CONF
+  if ! grep -qF "$INC" $CONF; then
+    echo "не нашёл строку 'listen 443 ssl;' в $CONF — вставьте вручную в server-блок 443: $INC"
+    exit 1
+  fi
   if ! nginx -t; then
     echo "nginx -t не прошёл — возвращаю конфиг"
     cp "$(ls -t $CONF.bak-* | head -1)" $CONF
@@ -49,4 +53,6 @@ install -m 755 $APP/deploy/backup-content.sh /etc/cron.daily/maxima-kiosk-backup
 
 say "проверка"
 curl -fsS -o /dev/null -w "https://$DOMAIN/ → %{http_code}\n" https://$DOMAIN/
-curl -sS -o /dev/null -w "https://$DOMAIN/admin/api/me → %{http_code} (ждём 401)\n" https://$DOMAIN/admin/api/me
+code=$(curl -sS -o /dev/null -w "%{http_code}" https://$DOMAIN/admin/api/me)
+echo "https://$DOMAIN/admin/api/me → $code (ждём 401)"
+test "$code" = 401

@@ -22,8 +22,10 @@ const COOKIE = 'ka_sid';
 const isFile = (f: string): f is EditableFile => Object.hasOwn(EDITABLE_FILES, f);
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ trustProxy: true, bodyLimit: 5 * 1024 * 1024 });
+  // За nginx ровно один прокси: req.ip — адрес, который дописал nginx, а не присланный клиентом.
+  const app = Fastify({ trustProxy: 1, bodyLimit: 5 * 1024 * 1024 });
   const store = new ContentStore(opts.contentRoot);
+  await store.ensureVersion();
   const sessions = new Sessions();
 
   await app.register(cookie);

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ConflictError, ContentStore, ValidationError } from '../../admin/server/contentStore';
@@ -95,5 +95,27 @@ describe('Хранилище контента админки', () => {
     const { store } = setup();
     const missing = (await store.coverage()).filter((r) => r.status === 'missing').map((r) => r.n);
     expect(missing).toEqual([10, 16, 17, 21, 22, 23, 24]);
+  });
+});
+
+describe('Контент на сервере после первой выкладки', () => {
+  it('нет screensaver.json (его не было в старой сборке) — сохранения работают, заставка читается выключенной', async () => {
+    const { root, store } = setup();
+    rmSync(join(root, 'data/screensaver.json'));
+    const { data, version } = await store.read('doctors.json');
+    await expect(store.save('doctors.json', data, version, 'admin')).resolves.toBeTruthy();
+    expect((await store.read('screensaver.json')).data).toMatchObject({ enabled: false, sources: [] });
+    expect((await store.coverage()).length).toBe(28);
+  });
+
+  it('нет version.json — сервер создаёт его при запуске, чтобы первая правка дошла до киоска за минуты', async () => {
+    const { root, store } = setup();
+    rmSync(join(root, 'data/version.json'), { force: true });
+    await store.ensureVersion();
+    const v = readJson<{ version: string }>(root, 'version.json').version;
+    expect(v).toBeTruthy();
+    await store.ensureVersion();
+    expect(readJson<{ version: string }>(root, 'version.json').version, 'существующую версию не трогает').toBe(v);
+    expect(existsSync(join(root, 'data/version.json'))).toBe(true);
   });
 });

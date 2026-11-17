@@ -112,6 +112,23 @@ describe('HTTP API админки', () => {
     expect(cov.find((r: { n: number }) => r.n === 21).status).toBe('covered');
   });
 
+  it('подмена X-Forwarded-For не обходит лимит попыток входа (за nginx берётся адрес, который добавил nginx)', async () => {
+    const app = await setup();
+    const codes: number[] = [];
+    for (let i = 0; i < 6; i++)
+      codes.push(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/admin/api/login',
+            headers: { 'x-forwarded-for': `10.0.0.${i}, 203.0.113.7` },
+            payload: { login: 'admin', password: 'нет' },
+          })
+        ).statusCode,
+      );
+    expect(codes[5]).toBe(429);
+  });
+
   it('cookie сессии httpOnly, SameSite=Strict и Path=/admin', async () => {
     const app = await setup();
     const { sid } = await login(app);
