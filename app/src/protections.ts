@@ -13,6 +13,12 @@ export type RegQuery = (key: string, value: string) => Promise<string | null>;
 
 const norm = (p: string) => p.replace(/^"|"$/g, '').trim().toLowerCase();
 
+/** Программа стоит вместо рабочего стола у текущей учётки (Shell в HKCU указывает на наш exe). */
+export async function isKioskShell(reg: RegQuery, exePath: string): Promise<boolean> {
+  const shell = await reg(PROTECTION_KEYS.shell.key, PROTECTION_KEYS.shell.value);
+  return shell !== null && norm(shell) === norm(exePath);
+}
+
 /** Какие защиты Windows сейчас действуют. Ошибка чтения — пункт ✗, а не падение. */
 export async function checkProtections(
   reg: RegQuery,
@@ -26,9 +32,8 @@ export async function checkProtections(
     }
   };
   const K = PROTECTION_KEYS;
-  const shell = await read(K.shell);
   return [
-    { name: 'Киоск вместо рабочего стола', ok: shell !== null && norm(shell) === norm(opts.exePath) },
+    { name: 'Киоск вместо рабочего стола', ok: await isKioskShell(reg, opts.exePath).catch(() => false) },
     { name: 'Свайпы от краёв экрана выключены', ok: (await read(K.edgeSwipe)) === '0' },
     { name: 'Диспетчер задач выключен', ok: (await read(K.taskMgr)) === '1' },
     { name: 'Автовход учётки «Киоск»', ok: (await read(K.autoLogon)) === '1' },

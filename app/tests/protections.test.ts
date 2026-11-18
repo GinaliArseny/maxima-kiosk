@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkProtections, parseRegQuery, PROTECTION_KEYS } from '../src/protections';
+import { checkProtections, isKioskShell, parseRegQuery, PROTECTION_KEYS } from '../src/protections';
 
 const EXE = 'C:\\Program Files\\MaximaKiosk\\MaximaKiosk.exe';
 /** Реестр Windows — граница ОС: отвечаем из словаря «ключ|значение». */
@@ -59,5 +59,18 @@ describe('Самопроверка защиты Windows', () => {
     expect(parseRegQuery('\r\nHKEY_LOCAL_MACHINE\\Y\r\n    AllowEdgeSwipe    REG_DWORD    0x0\r\n')).toBe('0');
     expect(parseRegQuery('\r\nHKEY_CURRENT_USER\\Z\r\n    DisableTaskMgr    REG_DWORD    0x1\r\n')).toBe('1');
     expect(parseRegQuery('')).toBeNull();
+  });
+});
+
+describe('Программа стоит вместо рабочего стола?', () => {
+  const shell = (v: string | null) => registry({ [`${PROTECTION_KEYS.shell.key}|Shell`]: v });
+
+  it('Shell учётки — наш exe (в кавычках, другом регистре) — да', async () => {
+    expect(await isKioskShell(shell(`"${EXE.toUpperCase()}"`), EXE)).toBe(true);
+  });
+
+  it('обычный компьютер: Shell не задан или explorer.exe — нет', async () => {
+    expect(await isKioskShell(shell(null), EXE), 'без Shell — обычный рабочий стол').toBe(false);
+    expect(await isKioskShell(shell('explorer.exe'), EXE)).toBe(false);
   });
 });

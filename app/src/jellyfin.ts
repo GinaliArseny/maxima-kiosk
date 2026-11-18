@@ -13,7 +13,7 @@ const VIDEO_TYPES = new Set(['Movie', 'Video', 'Episode', 'MusicVideo']);
 const FOLDER_TYPES = new Set(['Folder', 'CollectionFolder', 'BoxSet', 'Season', 'Series']);
 const PROBE_TIMEOUT_MS = 3000;
 const REQUEST_TIMEOUT_MS = 15_000;
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.1.1';
 const DEVICE_ID = 'maxima-kiosk-hall';
 
 export interface JellyfinOptions {

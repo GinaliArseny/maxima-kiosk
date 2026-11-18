@@ -1,16 +1,17 @@
-import { app, BrowserWindow, ipcMain, powerMonitor, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, powerMonitor, type IpcMainInvokeEvent } from 'electron';
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { loadConfig, localConfigSchema, saveConfig, type LocalConfig } from './config';
 import { createCornerGesture } from './cornerGesture';
+import { createEmergencyExit, EMERGENCY_ACCELERATOR } from './emergency';
 import { createIdleWatcher } from './idleWatcher';
 import { JellyfinClient, type VideoItem } from './jellyfin';
 import { createMainWindow, openKiosk } from './mainWindow';
 import { isKioskHome } from './navigation';
 import { configPath, screensaverCachePath, serviceExitFlag } from './paths';
 import { hashPin, PinGuard, verifyPin } from './pin';
-import { checkProtections, winRegQuery, winTaskExists } from './protections';
+import { checkProtections, isKioskShell, winRegQuery, winTaskExists } from './protections';
 import { fetchScreensaverSettings, type Screensaver } from './remoteSettings';
 import { createScreensaverWindow } from './screensaverWindow';
 import { createServiceWindow } from './serviceWindow';
@@ -33,6 +34,7 @@ let allowQuit = false;
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
 app.on('before-quit', () => (allowQuit = true));
+app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => {
   /* киоск не закрывается сам */
 });
@@ -79,6 +81,19 @@ void app.whenReady().then(() => {
   ipcMain.on('corner-tap', (e, p: { x: number; y: number }) => {
     if (e.sender === main.webContents) gesture(p.x, p.y);
   });
+
+  // Аварийный выход с клавиатуры: на обычном компьютере — сразу, на киоске — окно PIN.
+  const emergency = createEmergencyExit({
+    isKioskShell: async () => process.platform === 'win32' && isKioskShell(winRegQuery, app.getPath('exe')),
+    quit: () => {
+      allowQuit = true;
+      app.exit(0);
+    },
+    askPin: () => !guard.locked() && openService(),
+  });
+  if (!globalShortcut.register(EMERGENCY_ACCELERATOR, () => void emergency())) {
+    console.warn(`аварийная комбинация ${EMERGENCY_ACCELERATOR} занята другой программой`);
+  }
 
   const save = (next: LocalConfig) => {
     cfg = next;
