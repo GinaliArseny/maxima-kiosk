@@ -1,7 +1,7 @@
 {
   "name": "maxima-kiosk-app",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Программа-киоск «Максима»",
   "author": "ООО «ОРТОС»",
   "main": "dist/main.js",

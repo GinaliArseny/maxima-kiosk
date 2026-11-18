@@ -17,8 +17,8 @@ export default defineConfig({
         globIgnores: ['data/**', 'docs/**', 'doctors/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: 'index.html',
-        // Админка живёт под тем же доменом — SW киоска её страницы не подменяет.
-        navigateFallbackDenylist: [/^\/admin/],
+        // Админка и раздача установщика живут под тем же доменом — SW киоска их не подменяет.
+        navigateFallbackDenylist: [/^\/admin/, /^\/download\//],
         cleanupOutdatedCaches: true,
         // Киоск — одна вкладка без перезапусков: новый SW должен вставать сразу.
         skipWaiting: true,
