@@ -8,7 +8,7 @@ import { createEmergencyExit, EMERGENCY_ACCELERATOR } from './emergency';
 import { createIdleWatcher } from './idleWatcher';
 import { JellyfinClient, type VideoItem } from './jellyfin';
 import { createMainWindow, openKiosk } from './mainWindow';
-import { isKioskHome } from './navigation';
+import { GAME_LOGIN_URL, isAwayFromKiosk, isKioskHome } from './navigation';
 import { configPath, screensaverCachePath, serviceExitFlag } from './paths';
 import { hashPin, PinGuard, verifyPin } from './pin';
 import { checkProtections, isKioskShell, winRegQuery, winTaskExists } from './protections';
@@ -21,7 +21,8 @@ import { devSnapshot } from './devSnapshot';
 app.commandLine.appendSwitch('overscroll-history-navigation', '0');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-const GAME_LOGIN_URL = 'https://emailer.339933.net/game/';
+/** Чужая страница (игра, форма её пароля) без касаний столько секунд — программа возвращает на главную. */
+const AWAY_IDLE_SEC = 120;
 
 /** Запуск внешней программы без системного окна ошибки у посетителей, если что-то пошло не так. */
 function detached(cmd: string, args: string[]) {
@@ -226,6 +227,17 @@ void app.whenReady().then(() => {
     pollMs: 5000,
     onIdle: () => void startSaver(),
     onActive: stopSaver,
+  });
+
+  // Страховка от тупика: игра или форма её пароля без касаний — назад на стенд (у игры есть и свой возврат).
+  createIdleWatcher({
+    getIdleSeconds: () => powerMonitor.getSystemIdleTime(),
+    thresholdSec: () => (process.env.KIOSK_DEV === '1' && Number(process.env.KIOSK_DEV_AWAY_SEC)) || AWAY_IDLE_SEC,
+    pollMs: 5000,
+    onIdle: () => {
+      if (!main.isDestroyed() && !alive(service) && isAwayFromKiosk(main.webContents.getURL(), cfg.kioskUrl)) void main.loadURL(cfg.kioskUrl);
+    },
+    onActive: () => {},
   });
 
   if (process.env.KIOSK_DEV_SERVICE === '1') openService();

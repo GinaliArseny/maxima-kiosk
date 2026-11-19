@@ -25,3 +25,16 @@ export function isKioskHome(url: string, kioskUrl: string): boolean {
     return false;
   }
 }
+
+/** Вход в игру из сервисного меню — сразу в режиме стенда: у игры кнопка «← НА СТЕНД» и свой автовозврат. */
+export const GAME_LOGIN_URL = 'https://emailer.339933.net/game/?stand=1';
+
+/** Показана чужая страница (игра, её форма пароля) — по простою программа вернёт на главную сама. */
+export function isAwayFromKiosk(url: string, kioskUrl: string): boolean {
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'https:' || u.protocol === 'http:') && u.origin !== new URL(kioskUrl).origin;
+  } catch {
+    return false;
+  }
+}
