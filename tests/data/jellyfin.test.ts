@@ -11,12 +11,18 @@ describe('Ссылки Jellyfin для заставки', () => {
     ['ссылка на скачивание во внутренней сети', `http://192.168.1.10:8096/Items/${ID}/Download?ApiKey=${KEY}`],
     ['ссылка на скачивание через внешний адрес', `https://video.example.ru/Items/${ID}/Download?ApiKey=${KEY}`],
     ['голый ID с пробелами', `  ${ID} `],
+    ['библиотека (адрес страницы библиотеки)', `https://video.example.ru/web/#/homevideos?topParentId=${ID}`],
+    ['папка внутри библиотеки', `https://video.example.ru/web/#/list?parentId=${ID}&serverId=99998888777766665555444433332222`],
   ])('%s → ID элемента', (_, link) => {
     expect(parseJellyfinLink(link)).toBe(ID);
   });
 
   it('ключ из ссылки никогда не принимается за ID', () => {
     expect(parseJellyfinLink(`https://video.example.ru/System/Info?ApiKey=${KEY}`)).toBeNull();
+  });
+
+  it('ID сервера (serverId) не принимается за ролик или папку', () => {
+    expect(parseJellyfinLink(`https://video.example.ru/web/#/home?serverId=${KEY}`)).toBeNull();
   });
 
   it('посторонняя ссылка → null', () => {

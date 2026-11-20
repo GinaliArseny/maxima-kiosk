@@ -30,7 +30,7 @@ describe('Веб-админка: заставка', () => {
     await userEvent.type(await screen.findByLabelText('Ссылка из Jellyfin'), 'https://youtube.com/watch?v=1');
     await userEvent.click(screen.getByRole('button', { name: 'Добавить ссылку' }));
     expect(
-      screen.getByText('Не похоже на ссылку Jellyfin — откройте видео или плейлист в Jellyfin и скопируйте адрес'),
+      screen.getByText('Не похоже на ссылку Jellyfin — откройте видео, плейлист, папку или библиотеку в Jellyfin и скопируйте адрес из адресной строки'),
     ).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Что показывать' })).queryAllByRole('listitem')).toHaveLength(0);
   });

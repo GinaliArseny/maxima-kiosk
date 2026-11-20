@@ -72,7 +72,7 @@ export function Screensaver() {
                   className={styles.secondary}
                   onClick={() => {
                     const itemId = parseJellyfinLink(link);
-                    if (!itemId) return setLinkErr('Не похоже на ссылку Jellyfin — откройте видео или плейлист в Jellyfin и скопируйте адрес');
+                    if (!itemId) return setLinkErr('Не похоже на ссылку Jellyfin — откройте видео, плейлист, папку или библиотеку в Jellyfin и скопируйте адрес из адресной строки');
                     setLinkErr('');
                     setLink('');
                     update((d) => ({ ...d, sources: [...d.sources, { itemId }] }));
@@ -85,9 +85,9 @@ export function Screensaver() {
                 <summary>Как достать ссылку</summary>
                 <ol>
                   <li>Откройте Jellyfin в браузере.</li>
-                  <li>Откройте плейлист (лучше один плейлист «Заставка киоска»), папку или отдельное видео.</li>
-                  <li>Скопируйте адрес из адресной строки браузера — вида …/web/#/details?id=… — и вставьте сюда.</li>
-                  <li>Плейлисту откройте доступ пользователю «kiosk», иначе киоск его не увидит.</li>
+                  <li>Откройте плейлист (лучше один плейлист «Заставка киоска»), библиотеку, папку или отдельное видео.</li>
+                  <li>Скопируйте адрес из адресной строки браузера целиком и вставьте сюда. Подойдёт любой из видов: …/web/#/details?id=…, …?topParentId=… (вся библиотека), …?parentId=… (папка).</li>
+                  <li>Пользователю «kiosk» в Jellyfin должен быть открыт доступ к этой библиотеке или плейлисту, иначе киоск его не увидит.</li>
                 </ol>
                 <p className={styles.muted}>Ссылки «Скачать» с ApiKey не нужны: ключ из ссылки всё равно не сохраняется.</p>
               </details>
