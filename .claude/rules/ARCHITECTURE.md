@@ -17,7 +17,7 @@
 - Сборка: `npm run build`
 - Контент: `npm run check-content`
 - Админка: `npm run admin:test` (тесты), `npm run admin:build` (веб + сервер), `npm run admin:web` (dev, прокси на :8787)
-- Программа-киоск: `npm --prefix app test`, `npm --prefix app run build`, `npm --prefix app run dist:win` (установщик в `app/release/`); на Mac для проверки — `KIOSK_DEV=1 npx --prefix app electron app`
+- Программа-киоск: `npm --prefix app test`, `npm --prefix app run build`, `npm --prefix app run dist:win` (установщик в `app/release/`); релиз — тег `app-v<версия>` → GitHub Actions на Windows (https://github.com/GinaliArseny/maxima-kiosk/releases); на Mac для проверки — `KIOSK_DEV=1 npx --prefix app electron app`
 - Деплой: `deploy/README.md`; настройка компьютера киоска: `deploy/kiosk-setup.md`
 
 ## Дерево
