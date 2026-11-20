@@ -1,7 +1,7 @@
 ﻿# Проверка установщика на настоящей Windows (GitHub Actions, windows-latest).
-# 1) ставим «старую» версию и запускаем её;
-# 2) поверх ставим новую — установщик должен сам закрыть старую и встать;
-# 3) запускаем новую: окно живо, снимок экрана, Ctrl+Alt+Shift+Q закрывает программу.
+# 1) старая версия, программа закрыта → новая поверх должна встать;
+# 2) переустановка поверх запущенной программы — установщик сам её закрывает;
+# 3) запуск: окно живо, снимок экрана, Ctrl+Alt+Shift+Q закрывает программу.
 param(
   [Parameter(Mandatory)] [string] $OldInstaller,
   [Parameter(Mandatory)] [string] $NewInstaller,
@@ -31,26 +31,28 @@ function Install([string] $installer) {
   Write-Host "установщик $(Split-Path $installer -Leaf): код $($p.ExitCode)"
 }
 
-Write-Host '── 1. Старая версия'
+Write-Host '── 1. Старая версия, программа закрыта → новая поверх'
 Install $OldInstaller
 Write-Host "  стоит: $(Installed-Version)"
-Start-Process $exe
-Start-Sleep 15
-if (-not (Kiosk-Running)) { throw 'старая версия не запустилась' }
-Shot '1-old-running'
-
-Write-Host '── 2. Новая поверх запущенной старой'
 Install $NewInstaller
 $v = Installed-Version
 Write-Host "  стоит: $v"
-if ($v -ne $NewVersion) { throw "обновление не встало: стоит $v, ждали $NewVersion" }
-if (Kiosk-Running) { throw 'после обновления осталась старая программа' }
+if ($v -ne $NewVersion) { throw "обновление при закрытой программе не встало: стоит $v, ждали $NewVersion" }
 
-Write-Host '── 3. Новая: запуск и аварийная комбинация'
+Write-Host '── 2. Переустановка поверх ЗАПУЩЕННОЙ программы'
+Start-Process $exe
+Start-Sleep 15
+if (-not (Kiosk-Running)) { throw 'программа не запустилась' }
+Shot '1-running-before-reinstall'
+Install $NewInstaller
+if ((Installed-Version) -ne $NewVersion) { throw 'переустановка поверх запущенной не встала' }
+if (Kiosk-Running) { throw 'после переустановки осталась работать старая копия' }
+
+Write-Host '── 3. Запуск и аварийная комбинация'
 Start-Process $exe
 Start-Sleep 20
-if (-not (Kiosk-Running)) { throw 'новая версия не запустилась' }
-Shot '2-new-running'
+if (-not (Kiosk-Running)) { throw 'программа не запустилась после обновления' }
+Shot '2-running'
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.SendKeys]::SendWait('^%+q')
 Start-Sleep 5
