@@ -1,0 +1,81 @@
+name: Программа-киоск (Windows)
+
+on:
+  push:
+    branches: [main, kiosk-v1]
+    paths: ['app/**', 'src/data/**', '.github/workflows/kiosk-app.yml']
+    tags: ['app-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
+
+      # app/ берёт схему настроек заставки из src/data (а та — zod из корня).
+      - name: Зависимости
+        run: |
+          npm ci --ignore-scripts
+          npm ci --prefix app
+
+      - name: Тесты
+        run: npm test --prefix app
+
+      - name: Версия
+        id: ver
+        run: echo "version=$(node -p "require('./app/package.json').version")" >> $env:GITHUB_OUTPUT
+
+      # На Windows electron-builder вшивает в exe название и версию (в «Диспетчере задач» — MaximaKiosk, а не Electron).
+      - name: Сборка установщика
+        working-directory: app
+        run: |
+          npm run build
+          npx electron-builder --win nsis --x64 --publish never -c.win.signAndEditExecutable=true
+          New-Item -ItemType Directory -Force old | Out-Null
+          npx electron-builder --win nsis --x64 --publish never -c.win.signAndEditExecutable=true -c.extraMetadata.version=0.0.1 -c.directories.output=old
+
+      - name: Проверка на Windows — обновление поверх запущенной, аварийный выход
+        working-directory: app
+        run: ./ci/smoke.ps1 -OldInstaller (Resolve-Path old/MaximaKiosk-Setup-0.0.1.exe) -NewInstaller (Resolve-Path release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe) -NewVersion ${{ steps.ver.outputs.version }}
+
+      - name: Снимки экрана
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shots
+          path: app/shots/
+
+      - name: Установщик
+        uses: actions/upload-artifact@v4
+        with:
+          name: MaximaKiosk-Setup-${{ steps.ver.outputs.version }}
+          path: app/release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe
+
+      - name: Архив скриптов настройки Windows
+        run: |
+          New-Item -ItemType Directory -Force KioskSetup | Out-Null
+          Copy-Item deploy/windows/*.ps1 KioskSetup/
+          Copy-Item deploy/kiosk-setup.md KioskSetup/Инструкция.md
+          Compress-Archive -Path KioskSetup -DestinationPath KioskSetup-scripts.zip
+
+      - name: Релиз (тег app-v*)
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME "app/release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe" KioskSetup-scripts.zip --title "Программа-киоск ${{ steps.ver.outputs.version }}" --notes "Установщик и скрипты настройки Windows. Инструкция — Инструкция.md в архиве."
