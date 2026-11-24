@@ -1,7 +1,7 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, powerMonitor, type IpcMainInvokeEvent } from 'electron';
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { loadConfig, localConfigSchema, saveConfig, type LocalConfig } from './config';
 import { createCornerGesture } from './cornerGesture';
 import { createEmergencyExit, EMERGENCY_ACCELERATOR } from './emergency';
@@ -31,6 +31,9 @@ function detached(cmd: string, args: string[]) {
   child.unref();
 }
 let allowQuit = false;
+
+// Отдельный профиль: тестовая установка не использует cookies, PIN и lock старого киоска.
+app.setPath('userData', join(app.getPath('appData'), 'MaximaKioskTest'));
 
 if (!app.requestSingleInstanceLock()) app.exit(0);
 

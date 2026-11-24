@@ -9,6 +9,7 @@ Touch-сайт для инфокиоска (~40", Windows, программа-к
 - Сборка: `npm run build` → `dist/`
 - Проверка полноты контента: `npm run check-content` (таблица 28 пунктов, exit 1 при дыре)
 - Админка: `npm run admin:test`, `npm run admin:build`
+- Тестовая версия 0.1.4: отдельный `ru.maxima.kiosk.test`, MaximaKioskTest, профиль `%APPDATA%\MaximaKioskTest`; без автозапуска и скриптов. Инструкция: `deploy/kiosk-test.md`.
 - Программа-киоск: `npm --prefix app test`, `npm --prefix app run dist:win`; настройка ПК — `deploy/kiosk-setup.md`
 - Релиз программы-киоска: поднять `version` в `app/package.json` (и `APP_VERSION` в `app/src/jellyfin.ts`), тег `app-v<версия>` → GitHub Actions (`.github/workflows/kiosk-app.yml`) соберёт exe на Windows, проверит обновление и аварийный выход (`app/ci/smoke.ps1`) и выложит релиз. Репо публичный: никаких секретов в коммитах
 - Деплой: см. `deploy/README.md` (rsync `dist/` **с --exclude data/ docs/ doctors/** на VPS Reg.ru 80.78.253.231, `kiosk.339933.net`; админка — Docker)

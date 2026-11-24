@@ -50,9 +50,14 @@ jobs:
           npx electron-builder --win nsis --x64 --publish never "-c.win.signAndEditExecutable=true"
           npx electron-builder --win nsis --x64 --publish never "-c.win.signAndEditExecutable=true" "-c.extraMetadata.version=0.0.1" "-c.directories.output=old"
 
+      - name: Старая независимая установка для проверки конфликта
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download app-v0.1.3 --repo GinaliArseny/maxima-kiosk --pattern MaximaKiosk-Setup-0.1.3.exe --dir legacy
+
       - name: Проверка на Windows — обновление поверх запущенной, аварийный выход
         working-directory: app
-        run: ./ci/smoke.ps1 -OldInstaller (Resolve-Path old/MaximaKiosk-Setup-0.0.1.exe) -NewInstaller (Resolve-Path release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe) -NewVersion ${{ steps.ver.outputs.version }}
+        run: ./ci/smoke.ps1 -LegacyInstaller (Resolve-Path ../legacy/MaximaKiosk-Setup-0.1.3.exe) -OldInstaller (Resolve-Path old/MaximaKioskTest-Setup-0.0.1.exe) -NewInstaller (Resolve-Path release/MaximaKioskTest-Setup-${{ steps.ver.outputs.version }}.exe) -NewVersion ${{ steps.ver.outputs.version }}
 
       - name: Снимки экрана
         if: always()
@@ -64,18 +69,11 @@ jobs:
       - name: Установщик
         uses: actions/upload-artifact@v4
         with:
-          name: MaximaKiosk-Setup-${{ steps.ver.outputs.version }}
-          path: app/release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe
-
-      - name: Архив скриптов настройки Windows
-        run: |
-          New-Item -ItemType Directory -Force KioskSetup | Out-Null
-          Copy-Item deploy/windows/*.ps1 KioskSetup/
-          Copy-Item deploy/kiosk-setup.md KioskSetup/Инструкция.md
-          Compress-Archive -Path KioskSetup -DestinationPath KioskSetup-scripts.zip
+          name: MaximaKioskTest-Setup-${{ steps.ver.outputs.version }}
+          path: app/release/MaximaKioskTest-Setup-${{ steps.ver.outputs.version }}.exe
 
       - name: Релиз (тег app-v*)
         if: startsWith(github.ref, 'refs/tags/app-v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME "app/release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe" KioskSetup-scripts.zip --title "Программа-киоск ${{ steps.ver.outputs.version }}" --notes "Установщик и скрипты настройки Windows. Инструкция — Инструкция.md в архиве."
+        run: gh release create $env:GITHUB_REF_NAME "app/release/MaximaKioskTest-Setup-${{ steps.ver.outputs.version }}.exe" deploy/kiosk-test.md --title "Программа-киоск ${{ steps.ver.outputs.version }}" --notes "Отдельная тестовая установка рядом со старым MaximaKiosk. Без автозапуска и скриптов. Инструкция — kiosk-test.md."
