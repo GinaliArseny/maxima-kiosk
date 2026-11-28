@@ -123,10 +123,14 @@ async function testScreensaver() {
   const unsubscribe = kiosk.onTestProgress(draw);
   show(el('h1', { textContent: 'Проверка заставки' }), el('p', { className: 'note', textContent: 'Проверяем настройки и запускаем видео без ожидания. Касание видео вернёт к этому отчёту.' }), list,
     button('Отменить проверку', () => void kiosk.cancelTest(), 'muted wide'));
-  try { draw(await kiosk.testScreensaver()); }
-  catch { draw([{ level: 'error', text: 'Проверка не завершилась. Закройте меню и повторите попытку.' }]); }
+  let result: DiagnosticLine[];
+  try { result = await kiosk.testScreensaver(); }
+  catch { result = [{ level: 'error', text: 'Проверка не завершилась. Закройте меню и повторите попытку.' }]; }
   finally { unsubscribe(); checkingSaver = false; arm(); }
-  show(el('h1', { textContent: 'Результат проверки заставки' }), list,
+  draw(result.filter(line => line.level !== 'info'));
+  const summary = result.find(line => line.level === 'error') ?? result.find(line => line.text.startsWith('Воспроизведение началось:')) ?? result.filter(line => line.level === 'warn').at(-1);
+  show(el('h1', { textContent: 'Результат проверки заставки' }),
+    el('p', { className: summary?.level === 'error' ? 'note bad' : 'note', textContent: summary?.text ?? 'Проверка завершена.' }), list,
     button('Проверить ещё раз', () => void testScreensaver(), 'primary wide'),
     button('Настроить Jellyfin', () => void jellyfinForm(), 'wide'), button('Назад в меню', menu, 'muted wide'));
 }

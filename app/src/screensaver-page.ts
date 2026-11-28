@@ -13,9 +13,11 @@ const fg = document.getElementById('fg') as HTMLVideoElement;
 const bg = document.getElementById('bg') as HTMLVideoElement;
 const START_TIMEOUT_MS = 15_000;
 
-// Любое касание — закрыть заставку; само касание дальше не идёт (окно заставки поверх всего).
-window.addEventListener('pointerdown', () => saver.dismiss(), { capture: true });
-window.addEventListener('keydown', () => saver.dismiss(), { capture: true });
+// Перед закрытием фиксируем прогресс: timeupdate может ещё не успеть прийти.
+let reportProgress = () => {};
+const dismiss = () => { reportProgress(); saver.dismiss(); };
+window.addEventListener('pointerdown', dismiss, { capture: true });
+window.addEventListener('keydown', dismiss, { capture: true });
 
 async function start() {
   const { items, muted, test } = await saver.items();
@@ -58,12 +60,13 @@ async function start() {
     queue.markBroken(current.id);
     setTimeout(playNext, 0);
   };
-  fg.addEventListener('timeupdate', () => {
+  reportProgress = () => {
     if (current && !reported && fg.currentTime > 0.25) {
       reported = true;
       saver.playback({ kind: 'playing', id: current.id });
     }
-  });
+  };
+  fg.addEventListener('timeupdate', reportProgress);
 
   fg.addEventListener('playing', () => {
     clearTimeout(guard);
