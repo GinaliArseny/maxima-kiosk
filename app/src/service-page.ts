@@ -9,6 +9,7 @@ interface KioskApi {
   jellyfin: () => Promise<{ internalUrl?: string; externalUrl?: string; user?: string }>;
   saveJellyfin: (cfg: unknown) => Promise<{ ok: boolean; error?: string }>;
   testScreensaver: () => Promise<DiagnosticLine[]>;
+  exportLog: () => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>;
   cancelTest: () => Promise<void>;
   onTestProgress: (cb: (lines: DiagnosticLine[]) => void) => () => void;
   close: () => void;
@@ -132,7 +133,22 @@ async function testScreensaver() {
   show(el('h1', { textContent: 'Результат проверки заставки' }),
     el('p', { className: summary?.level === 'error' ? 'note bad' : 'note', textContent: summary?.text ?? 'Проверка завершена.' }), list,
     button('Проверить ещё раз', () => void testScreensaver(), 'primary wide'),
+    button('Сохранить отчёт', () => void exportLog(), 'wide'),
     button('Настроить Jellyfin', () => void jellyfinForm(), 'wide'), button('Назад в меню', menu, 'muted wide'));
+}
+
+async function exportLog() {
+  checkingSaver = true;
+  clearTimeout(idle);
+  const message = el('p', { className: 'note', textContent: 'Выберите, куда сохранить отчёт…' });
+  show(el('h1', { textContent: 'Отчёт о заставке' }), message);
+  try {
+    const result = await kiosk.exportLog();
+    message.textContent = result.ok ? `Отчёт сохранён: ${result.path}. Пришлите этот TXT-файл для разбора.`
+      : result.canceled ? 'Сохранение отменено.' : result.error ?? 'Не удалось сохранить отчёт.';
+  } catch { message.textContent = 'Не удалось сохранить отчёт. Повторите попытку.'; }
+  finally { checkingSaver = false; arm(); }
+  root.append(button('Сохранить ещё раз', () => void exportLog(), 'wide'), button('Назад в меню', menu, 'muted wide'));
 }
 
 function menu() {
@@ -146,6 +162,7 @@ function menu() {
       button('Сменить PIN', () => setPinFlow(menu)),
       button('Заставка: Jellyfin', () => void jellyfinForm()),
       button('Проверить заставку', () => void testScreensaver(), 'primary'),
+      button('Сохранить отчёт', () => void exportLog()),
       button('Состояние защиты', () => void protections()),
       button('Выйти на рабочий стол', () => void kiosk.action('desktop'), 'danger'),
       button('Выключить компьютер', () => void kiosk.action('shutdown'), 'danger'),

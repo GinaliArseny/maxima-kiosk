@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('kiosk', {
   jellyfin: () => ipcRenderer.invoke('service:jellyfin'),
   saveJellyfin: (cfg: unknown) => ipcRenderer.invoke('service:save-jellyfin', cfg),
   testScreensaver: () => ipcRenderer.invoke('service:test-screensaver'),
+  exportLog: () => ipcRenderer.invoke('service:export-log'),
   cancelTest: () => ipcRenderer.invoke('service:cancel-test'),
   onTestProgress: (cb: (lines: unknown) => void) => {
     const listener = (_event: unknown, lines: unknown) => cb(lines);

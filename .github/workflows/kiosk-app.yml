@@ -50,16 +50,18 @@ jobs:
           npx electron-builder --win nsis --x64 --publish never "-c.win.signAndEditExecutable=true"
 
 
-      - name: Настоящий установщик 0.1.3 для проверки обновления
+      - name: Настоящие установщики 0.1.3 и 0.1.5 для проверки обновления
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download app-v0.1.3 --repo GinaliArseny/maxima-kiosk --pattern MaximaKiosk-Setup-0.1.3.exe --dir app/old
+          gh release download app-v0.1.5 --repo GinaliArseny/maxima-kiosk --pattern MaximaKiosk-Setup-0.1.5.exe --dir app/old
+          if ((Get-FileHash app/old/MaximaKiosk-Setup-0.1.5.exe -Algorithm SHA256).Hash -ne 'D0C4ABE1FC53D041D91E7B0AA1041EDB9375A57E1C7A27BD9AAF7E6C5B610F93') { throw 'Контрольная сумма 0.1.5 не совпала' }
           if ((Get-FileHash app/old/MaximaKiosk-Setup-0.1.3.exe -Algorithm SHA256).Hash -ne '80F1B52107871FE1E112248D770D12AE249145BCC9982047FCF1783465C0EADB') { throw 'Контрольная сумма 0.1.3 не совпала' }
 
       - name: Проверка на Windows — обновление поверх запущенной, аварийный выход
         working-directory: app
-        run: ./ci/smoke.ps1 -OldInstaller (Resolve-Path old/MaximaKiosk-Setup-0.1.3.exe) -NewInstaller (Resolve-Path release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe) -NewVersion ${{ steps.ver.outputs.version }}
+        run: ./ci/smoke.ps1 -OldInstaller (Resolve-Path old/MaximaKiosk-Setup-0.1.3.exe) -IntermediateInstaller (Resolve-Path old/MaximaKiosk-Setup-0.1.5.exe) -NewInstaller (Resolve-Path release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe) -NewVersion ${{ steps.ver.outputs.version }}
 
       - name: Снимки экрана
         if: always()
@@ -78,4 +80,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/app-v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME "app/release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe" deploy/kiosk-update-0.1.5.md --title "Программа-киоск ${{ steps.ver.outputs.version }}" --notes "Обновление поверх 0.1.3 с сохранением PIN и Jellyfin. В меню после PIN — Проверить заставку. Без автозапуска и скриптов."
+        run: gh release create $env:GITHUB_REF_NAME "app/release/MaximaKiosk-Setup-${{ steps.ver.outputs.version }}.exe" deploy/kiosk-update-0.2.1.md --title "Программа-киоск ${{ steps.ver.outputs.version }}" --notes "Обновление поверх 0.1.3/0.1.5 с сохранением PIN и Jellyfin. Локальный журнал заставки и кнопка Сохранить отчёт после PIN. Без автозапуска и скриптов."
