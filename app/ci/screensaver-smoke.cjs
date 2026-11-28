@@ -35,7 +35,10 @@ const server = createServer((req, res) => {
         if (u.pathname === '/Items') return Response.json({ Items: globalThis.__ciMode === 'empty' ? [] : [{ Id: 'a'.repeat(32), Name: 'Проверочное видео', Type: 'Video' }] });
         return new Response('', { status: 404 });
       };
-      await BrowserWindow.getAllWindows()[0].loadFile(app.getAppPath() + '/pages/offline.html');
+      const mainWindow = globalThis.__ciMainId ? BrowserWindow.fromId(globalThis.__ciMainId) : BrowserWindow.getAllWindows()[0];
+      globalThis.__ciMainId = mainWindow.id;
+      mainWindow.webContents.stop();
+      await mainWindow.loadFile(app.getAppPath() + '/pages/offline.html');
     });
     const next = app.waitForEvent('window');
     for (let i = 0; i < 5; i++) await main.mouse.click(30, 30);
@@ -87,10 +90,15 @@ const server = createServer((req, res) => {
     await app.evaluate(() => { globalThis.__ciMode = 'auto'; globalThis.__ciIdle = 61; });
     const autoVideo = await autoWindow;
     await autoVideo.waitForFunction(() => document.querySelector('#fg').currentTime > 0.3, null, { timeout: 20000 });
+    const autoClosed = autoVideo.waitForEvent('close');
     await autoVideo.mouse.click(200, 200);
+    await autoClosed;
     await app.evaluate(async ({ BrowserWindow, app }) => {
       globalThis.__ciIdle = 0;
-      await BrowserWindow.getAllWindows()[0].loadFile(app.getAppPath() + '/pages/offline.html');
+      const mainWindow = globalThis.__ciMainId ? BrowserWindow.fromId(globalThis.__ciMainId) : BrowserWindow.getAllWindows()[0];
+      globalThis.__ciMainId = mainWindow.id;
+      mainWindow.webContents.stop();
+      await mainWindow.loadFile(app.getAppPath() + '/pages/offline.html');
     });
     const serviceAgain = app.waitForEvent('window');
     for (let i = 0; i < 5; i++) await main.mouse.click(30, 30);
