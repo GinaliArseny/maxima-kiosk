@@ -34,12 +34,13 @@ const server = createServer((req, res) => {
         if (u.pathname === '/Items') return Response.json({ Items: globalThis.__ciMode === 'empty' ? [] : [{ Id: 'a'.repeat(32), Name: 'Проверочное видео', Type: 'Video' }] });
         return new Response('', { status: 404 });
       };
-      await BrowserWindow.getAllWindows()[0].loadFile(require('node:path').join(app.getAppPath(), 'pages', 'offline.html'));
+      await BrowserWindow.getAllWindows()[0].loadFile(app.getAppPath() + '/pages/offline.html');
     });
     const next = app.waitForEvent('window');
     for (let i = 0; i < 5; i++) await main.mouse.click(30, 30);
     service = await next;
     await service.getByRole('heading', { name: 'Введите PIN', exact: true }).waitFor();
+    await assert.rejects(service.evaluate(() => window.kiosk.testScreensaver()), /нужен PIN/);
     for (const digit of '2468') await service.getByRole('button', { name: digit, exact: true }).click();
     await service.getByRole('button', { name: 'OK', exact: true }).click();
     await service.getByRole('button', { name: 'Проверить заставку', exact: true }).waitFor();
