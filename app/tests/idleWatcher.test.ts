@@ -57,3 +57,13 @@ describe('Простой киоска → заставка', () => {
     expect(t.onIdle).not.toHaveBeenCalled();
   });
 });
+
+it('повторяет запуск после сбоя без нового касания, с паузой', () => {
+  vi.useFakeTimers();
+  const onIdle = vi.fn();
+  const w = createIdleWatcher({ getIdleSeconds: () => 300, thresholdSec: () => 60, pollMs: 5000, retryMs: 60_000, onIdle, onActive: vi.fn() });
+  vi.advanceTimersByTime(5000); expect(onIdle).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(55_000); expect(onIdle).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(5000); expect(onIdle).toHaveBeenCalledTimes(2);
+  w.stop();
+});

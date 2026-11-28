@@ -4,6 +4,8 @@ export interface IdleWatcherOptions {
   /** Порог включения заставки, сек (из настроек — может меняться). */
   thresholdSec: () => number;
   pollMs: number;
+  /** Повторная попытка при непрерывном простое, например после сетевой ошибки. */
+  retryMs?: number;
   onIdle: () => void;
   onActive: () => void;
 }
@@ -11,10 +13,12 @@ export interface IdleWatcherOptions {
 /** Опрос простоя: onIdle — один раз при пересечении порога, onActive — один раз при первом касании после этого. */
 export function createIdleWatcher(o: IdleWatcherOptions): { stop(): void } {
   let idle = false;
+  let lastAttempt = 0;
   const timer = setInterval(() => {
     const secs = o.getIdleSeconds();
-    if (!idle && secs >= o.thresholdSec()) {
+    if (secs >= o.thresholdSec() && (!idle || (o.retryMs !== undefined && Date.now() - lastAttempt >= o.retryMs))) {
       idle = true;
+      lastAttempt = Date.now();
       o.onIdle();
     } else if (idle && secs < o.thresholdSec()) {
       idle = false;

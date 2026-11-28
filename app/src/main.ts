@@ -1,18 +1,18 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, powerMonitor, type IpcMainInvokeEvent } from 'electron';
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { loadConfig, localConfigSchema, saveConfig, type LocalConfig } from './config';
 import { createCornerGesture } from './cornerGesture';
 import { createEmergencyExit, EMERGENCY_ACCELERATOR } from './emergency';
 import { createIdleWatcher } from './idleWatcher';
-import { JellyfinClient, type VideoItem } from './jellyfin';
+import { prepareSaver, playbackLine, type DiagnosticLine, type SaverPlaylist, type PlaybackEvent } from './saverDiagnostic';
 import { createMainWindow, openKiosk } from './mainWindow';
 import { GAME_LOGIN_URL, isAwayFromKiosk, isKioskHome } from './navigation';
 import { configPath, screensaverCachePath, serviceExitFlag } from './paths';
 import { hashPin, PinGuard, verifyPin } from './pin';
 import { checkProtections, isKioskShell, winRegQuery, winTaskExists } from './protections';
-import { fetchScreensaverSettings, type Screensaver } from './remoteSettings';
+import { loadScreensaverSettings, type Screensaver } from './remoteSettings';
 import { createScreensaverWindow } from './screensaverWindow';
 import { createServiceWindow } from './serviceWindow';
 import { devSnapshot } from './devSnapshot';
@@ -31,9 +31,6 @@ function detached(cmd: string, args: string[]) {
   child.unref();
 }
 let allowQuit = false;
-
-// Отдельный профиль: тестовая установка не использует cookies, PIN и lock старого киоска.
-app.setPath('userData', join(app.getPath('appData'), 'MaximaKioskTest'));
 
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
@@ -72,6 +69,7 @@ void app.whenReady().then(() => {
     service.on('closed', () => {
       service = null;
       authed = false;
+      if (manualTest) stopSaver();
     });
   };
 
@@ -172,64 +170,124 @@ void app.whenReady().then(() => {
 
   // ── Заставка ─────────────────────────────────────────────────────────────
   let settings: Screensaver | null = null;
-  let saverItems: { items: (VideoItem & { url: string })[]; muted: boolean } | null = null;
+  let saverItems: SaverPlaylist | null = null;
   let starting = false;
+  let manualTest: { owner: BrowserWindow; report: DiagnosticLine[]; resolve: (r: DiagnosticLine[]) => void; abort: AbortController; timer?: ReturnType<typeof setTimeout> } | null = null;
   const settingsUrl = new URL('data/screensaver.json', cfg.kioskUrl).href;
-  const refreshSettings = async () => (settings = await fetchScreensaverSettings(fetch, settingsUrl, screensaverCachePath()));
+  const refreshSettings = async (fetchImpl = fetch) => {
+    const result = await loadScreensaverSettings(fetchImpl, settingsUrl, screensaverCachePath());
+    settings = result.settings;
+    return result;
+  };
   void refreshSettings();
   const thresholdSec = () => Number(process.env.KIOSK_DEV_IDLE_SEC) || (settings?.idleMinutes ?? 3) * 60;
 
   function stopSaver() {
-    if (alive(saver)) saver.close();
+    const test = manualTest;
+    manualTest = null;
+    if (test) {
+      test.abort.abort();
+      clearTimeout(test.timer);
+    }
+    const window = saver;
     saver = null;
-    if (!main.isDestroyed()) main.focus();
+    if (alive(window)) window.close();
+    if (test) {
+      if (!test.report.some(x => x.level === 'error' || x.text.startsWith('Воспроизведение началось:'))) {
+        test.report.push({ level: 'warn', text: 'Проверка завершена до подтверждения воспроизведения.' });
+      }
+      test.resolve(test.report);
+      if (alive(test.owner)) { test.owner.show(); test.owner.focus(); }
+    } else if (!main.isDestroyed()) main.focus();
+  }
+  function openSaver(playlist: SaverPlaylist) {
+    saverItems = playlist;
+    const window = createScreensaverWindow();
+    saver = window;
+    window.on('closed', () => {
+      if (saver !== window) return;
+      saver = null;
+      if (manualTest) stopSaver();
+    });
+    const failed = () => {
+      if (saver !== window) return;
+      manualTest?.report.push({ level: 'error', text: 'Окно проигрывателя не удалось открыть или оно завершилось с ошибкой.' });
+      stopSaver();
+    };
+    window.webContents.on('render-process-gone', failed);
+    window.webContents.on('did-fail-load', failed);
   }
   async function startSaver() {
-    if (alive(saver) || starting || alive(service)) return;
+    if (alive(saver) || starting || alive(service) || manualTest) return;
     starting = true;
     try {
-      // Только разработка: KIOSK_DEV_STREAMS=url1,url2 — ролики напрямую, без Jellyfin и настроек.
-      const devStreams = process.env.KIOSK_DEV === '1' ? process.env.KIOSK_DEV_STREAMS : undefined;
+      const devStreams = !app.isPackaged && process.env.KIOSK_DEV === '1' ? process.env.KIOSK_DEV_STREAMS : undefined;
       if (devStreams) {
-        saverItems = { items: devStreams.split(',').map((url, i) => ({ id: String(i), name: url, url })), muted: true };
-        saver = createScreensaverWindow();
-        saver.on('closed', () => (saver = null));
+        openSaver({ items: devStreams.split(',').map((url, i) => ({ id: String(i), name: 'Тестовое видео', url })), muted: true });
         return;
       }
-      const s = await refreshSettings();
-      if (!s?.enabled || !s.sources.length || !cfg.jellyfin) return;
-      const jf = new JellyfinClient({ ...cfg.jellyfin, fetch });
-      await jf.resolveBase();
-      await jf.login();
-      const items = await jf.expand(s.sources.map((x) => x.itemId));
-      // Пока ходили в Jellyfin, к киоску могли подойти.
-      if (!items.length || powerMonitor.getSystemIdleTime() < thresholdSec()) return;
-      saverItems = { items: items.map((i) => ({ ...i, url: jf.streamUrl(i.id) })), muted: s.muted };
-      // Под заставкой — главная стенда, а не брошенная игра или раздел.
+      const result = await prepareSaver({ loadSettings: () => refreshSettings(), jellyfin: cfg.jellyfin, fetch, manual: false });
+      // Не перекрывать обслуживание или посетителя, подошедшего во время сетевого запроса.
+      if (!result.playlist || alive(service) || powerMonitor.getSystemIdleTime() < thresholdSec()) return;
       if (!isKioskHome(main.webContents.getURL(), cfg.kioskUrl)) void main.loadURL(cfg.kioskUrl);
-      saver = createScreensaverWindow();
-      saver.on('closed', () => (saver = null));
-    } catch (err) {
-      console.warn('заставка не включилась:', (err as Error).message);
-    } finally {
-      starting = false;
-    }
+      openSaver(result.playlist);
+    } finally { starting = false; }
   }
+  handle('service:test-screensaver', true, (): Promise<DiagnosticLine[]> => {
+    if (starting || manualTest || alive(saver)) return Promise.resolve([{ level: 'warn', text: 'Заставка уже запускается. Повторите проверку через несколько секунд.' }]);
+    const owner = service!;
+    return new Promise((resolve) => {
+      const test = { owner, report: [] as DiagnosticLine[], resolve, abort: new AbortController(), timer: undefined as ReturnType<typeof setTimeout> | undefined };
+      manualTest = test;
+      test.timer = setTimeout(() => {
+        if (manualTest !== test) return;
+        test.report.push({ level: 'warn', text: 'Проверка завершена по лимиту 2 минуты. При необходимости запустите её снова.' });
+        stopSaver();
+      }, 120_000);
+      const testFetch: typeof fetch = (input, init) => fetch(input, { ...init, signal: AbortSignal.any([test.abort.signal, ...(init?.signal ? [init.signal] : [])]) });
+      void prepareSaver({
+        loadSettings: () => refreshSettings(testFetch), jellyfin: cfg.jellyfin, fetch: testFetch, manual: true,
+        progress: lines => {
+          if (manualTest !== test) return;
+          test.report = lines;
+          if (alive(owner)) owner.webContents.send('service:test-progress', lines);
+        },
+      }).then(result => {
+        if (manualTest !== test) return;
+        test.report = result.report;
+        if (!result.playlist || !alive(owner) || !authed) return stopSaver();
+        test.report.push({ level: 'info', text: 'Открываем видео. Коснитесь экрана для возврата к результатам проверки.' });
+        owner.hide();
+        openSaver(result.playlist);
+      }).catch(() => {
+        if (manualTest !== test) return;
+        test.report.push({ level: 'error', text: 'Не удалось запустить проверку. Повторите попытку.' });
+        stopSaver();
+      });
+    });
+  });
+  handle('service:cancel-test', true, () => { if (manualTest) stopSaver(); });
   ipcMain.handle('screensaver:items', (e) => {
     if (!saver || e.sender !== saver.webContents) throw new Error('нет доступа');
     return saverItems;
+  });
+  ipcMain.on('screensaver:playback', (e, event: PlaybackEvent) => {
+    if (!saver || e.sender !== saver.webContents || !manualTest || !saverItems || !event || typeof event.id !== 'string') return;
+    const line = playbackLine(event, saverItems.items);
+    if (line && manualTest.report.length < 60 && !manualTest.report.some(x => x.text === line.text)) manualTest.report.push(line);
   });
   ipcMain.on('screensaver:dismiss', (e) => {
     if (saver && e.sender === saver.webContents) stopSaver();
   });
   // Разработка: KIOSK_DEV_STREAMS — заставка сразу при старте, без учёта простоя этого компьютера.
-  if (process.env.KIOSK_DEV === '1' && process.env.KIOSK_DEV_STREAMS) setTimeout(() => void startSaver(), 3000);
+  if (!app.isPackaged && process.env.KIOSK_DEV === '1' && process.env.KIOSK_DEV_STREAMS) setTimeout(() => void startSaver(), 3000);
   else createIdleWatcher({
     getIdleSeconds: () => powerMonitor.getSystemIdleTime(),
     thresholdSec,
     pollMs: 5000,
     onIdle: () => void startSaver(),
-    onActive: stopSaver,
+    retryMs: 60_000,
+    onActive: () => { if (!manualTest) stopSaver(); },
   });
 
   // Страховка от тупика: игра или форма её пароля без касаний — назад на стенд (у игры есть и свой возврат).

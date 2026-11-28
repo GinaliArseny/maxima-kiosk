@@ -1,3 +1,5 @@
+export class JellyfinError extends Error {}
+
 export interface VideoItem {
   id: string;
   name: string;
@@ -13,8 +15,8 @@ const VIDEO_TYPES = new Set(['Movie', 'Video', 'Episode', 'MusicVideo']);
 const FOLDER_TYPES = new Set(['Folder', 'CollectionFolder', 'BoxSet', 'Season', 'Series']);
 const PROBE_TIMEOUT_MS = 3000;
 const REQUEST_TIMEOUT_MS = 15_000;
-const APP_VERSION = '0.1.4';
-const DEVICE_ID = 'maxima-kiosk-test';
+const APP_VERSION = '0.1.5';
+const DEVICE_ID = 'maxima-kiosk-hall';
 
 export interface JellyfinOptions {
   internalUrl: string;
@@ -52,7 +54,7 @@ export class JellyfinClient {
         /* следующий адрес */
       }
     }
-    throw new Error('Jellyfin недоступен ни по внутреннему, ни по внешнему адресу');
+    throw new JellyfinError('Jellyfin недоступен ни по внутреннему, ни по внешнему адресу');
   }
 
   async login(): Promise<void> {
@@ -63,8 +65,8 @@ export class JellyfinClient {
       body: JSON.stringify({ Username: this.o.user, Pw: this.o.password }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (res.status === 401) throw new Error('Jellyfin: неверный пользователь или пароль');
-    if (!res.ok) throw new Error(`Jellyfin: вход не удался (${res.status})`);
+    if (res.status === 401) throw new JellyfinError('Jellyfin: неверный пользователь или пароль');
+    if (!res.ok) throw new JellyfinError(`Jellyfin: вход не удался (${res.status})`);
     const body = (await res.json()) as { AccessToken: string; User: { Id: string } };
     this.token = body.AccessToken;
     this.userId = body.User.Id;
@@ -80,7 +82,9 @@ export class JellyfinClient {
       await this.login();
       return this.get<T>(path, true);
     }
-    if (!res.ok) return null;
+    if (res.status === 404) return null;
+    if (res.status === 403) throw new JellyfinError('Jellyfin: нет доступа к выбранным видео (403). Проверьте права пользователя.');
+    if (!res.ok) throw new JellyfinError(`Jellyfin: не удалось получить список видео (HTTP ${res.status}).`);
     return (await res.json()) as T;
   }
 

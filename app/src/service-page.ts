@@ -1,3 +1,4 @@
+import type { DiagnosticLine } from './saverDiagnostic';
 /** Сервисное окно: PIN-пад и меню обслуживания. Чистый DOM, без фреймворков. */
 interface KioskApi {
   state: () => Promise<{ hasPin: boolean; locked: boolean }>;
@@ -7,15 +8,20 @@ interface KioskApi {
   protections: () => Promise<{ name: string; ok: boolean }[]>;
   jellyfin: () => Promise<{ internalUrl?: string; externalUrl?: string; user?: string }>;
   saveJellyfin: (cfg: unknown) => Promise<{ ok: boolean; error?: string }>;
+  testScreensaver: () => Promise<DiagnosticLine[]>;
+  cancelTest: () => Promise<void>;
+  onTestProgress: (cb: (lines: DiagnosticLine[]) => void) => () => void;
   close: () => void;
 }
 const kiosk = (window as unknown as { kiosk: KioskApi }).kiosk;
 const root = document.getElementById('root')!;
 
 // Сервисное окно не должно висеть открытым: минута без касаний — закрыть.
+let checkingSaver = false;
 let idle: ReturnType<typeof setTimeout>;
 const arm = () => {
   clearTimeout(idle);
+  if (checkingSaver) return;
   idle = setTimeout(() => kiosk.close(), 60_000);
 };
 window.addEventListener('pointerdown', arm, { capture: true });
@@ -106,6 +112,25 @@ async function jellyfinForm() {
   show(el('h1', { textContent: 'Заставка: доступ к Jellyfin' }), el('p', { className: 'note', textContent: 'Нужна клавиатура (USB или удалённый доступ). Пароль не показывается и хранится только на этом компьютере.' }), form, msg, button('Назад', menu, 'muted wide'));
 }
 
+async function testScreensaver() {
+  checkingSaver = true;
+  clearTimeout(idle);
+  const list = el('ul', { className: 'checks' });
+  const draw = (lines: DiagnosticLine[]) => list.replaceChildren(...lines.map(line => el('li', {
+    className: line.level === 'error' ? 'bad' : line.level === 'ok' ? 'ok' : '',
+    textContent: `${line.level === 'error' ? '✗' : line.level === 'ok' ? '✓' : '•'} ${line.text}`,
+  })));
+  const unsubscribe = kiosk.onTestProgress(draw);
+  show(el('h1', { textContent: 'Проверка заставки' }), el('p', { className: 'note', textContent: 'Проверяем настройки и запускаем видео без ожидания. Касание видео вернёт к этому отчёту.' }), list,
+    button('Отменить проверку', () => void kiosk.cancelTest(), 'muted wide'));
+  try { draw(await kiosk.testScreensaver()); }
+  catch { draw([{ level: 'error', text: 'Проверка не завершилась. Закройте меню и повторите попытку.' }]); }
+  finally { unsubscribe(); checkingSaver = false; arm(); }
+  show(el('h1', { textContent: 'Результат проверки заставки' }), list,
+    button('Проверить ещё раз', () => void testScreensaver(), 'primary wide'),
+    button('Настроить Jellyfin', () => void jellyfinForm(), 'wide'), button('Назад в меню', menu, 'muted wide'));
+}
+
 function menu() {
   show(
     el('h1', { textContent: 'Обслуживание киоска' }),
@@ -116,6 +141,7 @@ function menu() {
       button('Войти в игру заново', () => void kiosk.action('game-login')),
       button('Сменить PIN', () => setPinFlow(menu)),
       button('Заставка: Jellyfin', () => void jellyfinForm()),
+      button('Проверить заставку', () => void testScreensaver(), 'primary'),
       button('Состояние защиты', () => void protections()),
       button('Выйти на рабочий стол', () => void kiosk.action('desktop'), 'danger'),
       button('Выключить компьютер', () => void kiosk.action('shutdown'), 'danger'),

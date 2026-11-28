@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fetchScreensaverSettings } from '../src/remoteSettings';
+import { fetchScreensaverSettings, loadScreensaverSettings } from '../src/remoteSettings';
 
 const URL_ = 'https://kiosk.339933.net/data/screensaver.json';
 const good = { enabled: true, idleMinutes: 3, muted: true, sources: [{ itemId: 'aaaabbbbccccddddeeeeffff00001111' }] };
@@ -29,4 +29,13 @@ describe('Настройки заставки с сервера', () => {
   it('файла ещё нет на сервере (404) и нет запомненного — null, заставки нет', async () => {
     expect(await fetchScreensaverSettings(serve('nf', 404), URL_, cache())).toBeNull();
   });
+});
+
+it('диагностика различает отсутствие настроек и локальную копию', async () => {
+  const c = cache();
+  const first = await loadScreensaverSettings(serve('nf', 404), URL_, c);
+  expect(first.source).toBe('none'); expect(first.note).toContain('404');
+  writeFileSync(c, JSON.stringify(good));
+  const second = await loadScreensaverSettings(down, URL_, c);
+  expect(second.source).toBe('cache'); expect(second.settings).toEqual(good);
 });

@@ -11,5 +11,12 @@ contextBridge.exposeInMainWorld('kiosk', {
   protections: () => ipcRenderer.invoke('service:protections'),
   jellyfin: () => ipcRenderer.invoke('service:jellyfin'),
   saveJellyfin: (cfg: unknown) => ipcRenderer.invoke('service:save-jellyfin', cfg),
+  testScreensaver: () => ipcRenderer.invoke('service:test-screensaver'),
+  cancelTest: () => ipcRenderer.invoke('service:cancel-test'),
+  onTestProgress: (cb: (lines: unknown) => void) => {
+    const listener = (_event: unknown, lines: unknown) => cb(lines);
+    ipcRenderer.on('service:test-progress', listener);
+    return () => ipcRenderer.removeListener('service:test-progress', listener);
+  },
   close: () => ipcRenderer.send('service:close'),
 });

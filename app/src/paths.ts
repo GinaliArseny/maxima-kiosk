@@ -1,10 +1,12 @@
 import { app } from 'electron';
 import { join } from 'node:path';
 
-/** Настройки тестовой установки принадлежат текущему пользователю Windows.
- * Не требуют install-kiosk.ps1 и не затрагивают старый ProgramData/MaximaKiosk.
+/**
+ * Каталог настроек: на Windows — %ProgramData%\MaximaKiosk (общий для учёток, его видит сторож),
+ * в разработке на других ОС — userData. Права на запись учётке «Киоск» выдаёт install-kiosk.ps1.
  */
 export function configDir(): string {
+  if (process.platform === 'win32') return join(process.env.ProgramData ?? 'C:\\ProgramData', 'MaximaKiosk');
   return app.getPath('userData');
 }
 

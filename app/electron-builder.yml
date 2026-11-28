@@ -1,5 +1,5 @@
-appId: ru.maxima.kiosk.test
-productName: MaximaKioskTest
+appId: ru.maxima.kiosk
+productName: MaximaKiosk
 copyright: ООО «ОРТОС»
 directories:
   output: release
@@ -23,6 +23,6 @@ nsis:
   allowToChangeInstallationDirectory: false
   createDesktopShortcut: false
   createStartMenuShortcut: true
-  shortcutName: Максима Киоск — Тест
+  shortcutName: Киоск «Максима»
   # Не запускать после установки: под администратором окно на весь экран без PIN не закрыть.
   runAfterFinish: false
